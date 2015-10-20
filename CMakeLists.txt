@@ -10,11 +10,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  cmake_modules
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Eigen REQUIRED COMPONENTS system)
+include_directories(${Eigen_INCLUDE_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -102,7 +103,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES darc_saca
 #  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs
 #  DEPENDS system_lib
@@ -114,7 +115,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+ include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -130,16 +131,17 @@ include_directories(
 # add_dependencies(darc_saca ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(darc_saca_node src/darc_saca_node.cpp)
+ add_executable(darc_saca_node src/darc_saca_node.cpp
+	 src/QuadrotorBase.cc)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(darc_saca_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(darc_saca_node
-#   ${catkin_LIBRARIES}
-# )
+ target_link_libraries(darc_saca_node
+   ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##
