@@ -1,15 +1,17 @@
 #include "QuadrotorBase.h"
 
+#include <iostream>
+
 QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// State = [pos vel orient angular_vel]
 	// Input = [roll, pitch, yaw_rate, climb_rate]
 
-	float kdrag = 0.15;
-	float kd = 0.05;
-	float kp1 = 0.5;
-	float kp2 = 5.0;
-	float kp3 = 0.5;
+	float kdrag = 0.35;
+	float kd = 5.0;
+	float kp1 = 1.0;
+	float kp2 = 10.0;
+	float kp3 = 1.0;
 	float kp4 = 0.05;
 
 	Eigen::Vector3f g(0,0,9.812);
@@ -30,21 +32,25 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	R << cpsi*ctheta-sphi*spsi*stheta, -cphi*spsi, cpsi*stheta+ctheta*sphi*spsi,
 		ctheta*spsi+cpsi*sphi*stheta, cphi*cpsi, spsi*stheta-cpsi*ctheta*sphi,
 		-cphi*stheta, sphi, cphi*ctheta;
-
-	Eigen::Matrix3f I;
-	I << 1, 0, 0,
-		   0, 1, 0,
-		   0, 0, 1;
 	
-	Eigen::Vector3f T(0,0,kp1*(u[3]-vel[2]));
-	Eigen::Vector3f tau;
-	tau << kp2*(u[0] - r[0]) - kd*w[0],
-		     kp2*(u[1] - r[1]) - kd*w[1],
-      	 kp3*(u[2] - w[2]);
+	Eigen::Matrix3f I;
+	I << 0.1, 0,     0,
+		   0,     0.1, 0,
+		   0,     0,     0.4;
+
+	double comp = g.norm()/(cphi*ctheta);
+	double max_climb_rate = 0.3;
+	Eigen::Vector3f T(0, 0, comp + kp1*(max_climb_rate*u[3]-vel[2]));
+	
+	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
+	float max_angle = 15.0f*M_PI/180.0f;
+	tau[0] = kp2*(-max_angle*u[1] - phi); // - kd*w[0];
+	tau[1] = kp2*(max_angle*u[0] - theta); // - kd*w[1];
+  tau[2] = kp3*(u[2] - w[2]);
 	
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = -kdrag*vel + R*T;
+	x_dot.segment(3,3) = R*T -g -kdrag*vel;
 	x_dot.segment(6,3) = w;
 	x_dot.segment(9,3) = I.inverse()*(tau + w.cross(I*w));
 	return x_dot + SampleGaussian(State::Zero(), M_);
@@ -108,22 +114,44 @@ QuadrotorBase::Position QuadrotorBase::est_position(void) {
 }  // est_position
 	
 Eigen::Quaternionf QuadrotorBase::true_quaternion(void) {
-	// TODO: update to be RPY
-	Position r = x_.segment(6,3);
-	double theta = fmod(r.norm(), 2.0*M_PI);
-	double eps = 0.0001;
-	Eigen::Quaternionf q(cos(0.5*theta), r[0]*sin(0.5*theta),
-											 r[1]*sin(0.5*theta), r[2]*sin(0.5*theta));
+	float phi   = x_[6];
+	float theta = x_[7];
+	float psi   = x_[8];
+	
+	float cphi   = cos(0.5*phi);
+	float sphi   = sin(0.5*phi);
+	float ctheta = cos(0.5*theta);
+	float stheta = sin(0.5*theta);
+	float cpsi   = cos(0.5*psi);
+	float spsi   = sin(0.5*psi);
+
+	float qw = cphi*ctheta*cpsi + sphi*stheta*spsi;
+	float qx = sphi*ctheta*cpsi - cphi*stheta*spsi;
+	float qy = cphi*stheta*cpsi + sphi*ctheta*spsi;
+	float qz = cphi*ctheta*spsi - sphi*stheta*cpsi;
+	
+	Eigen::Quaternionf q(qw, qx, qy, qz);
 	return q;
 }  // true_quaternion								 				 
 
 Eigen::Quaternionf QuadrotorBase::est_quaternion(void) {
-	// TODO: update to be RPY
-	Position r = x_hat_.segment(6,3);
-	double theta = fmod(r.norm(), 2.0*M_PI);
-	double eps = 0.0001;
-	Eigen::Quaternionf q(cos(0.5*theta), r[0]*sin(0.5*theta),
-											 r[1]*sin(0.5*theta), r[2]*sin(0.5*theta));
+	float phi   = x_hat_[6];
+	float theta = x_hat_[7];
+	float psi   = x_hat_[8];
+	
+	float cphi   = cos(0.5*phi);
+	float sphi   = sin(0.5*phi);
+	float ctheta = cos(0.5*theta);
+	float stheta = sin(0.5*theta);
+	float cpsi   = cos(0.5*psi);
+	float spsi   = sin(0.5*psi);
+
+	float qw = cphi*ctheta*cpsi + sphi*stheta*spsi;
+	float qx = sphi*stheta*cpsi - cphi*stheta*spsi;
+	float qy = cphi*stheta*cpsi + sphi*ctheta*spsi;
+	float qz = cphi*ctheta*spsi - sphi*stheta*cpsi;
+	
+	Eigen::Quaternionf q(qw, qx, qy, qz);
 	return q;
 }  // est_quaternion
 

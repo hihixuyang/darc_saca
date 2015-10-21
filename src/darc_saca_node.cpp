@@ -21,7 +21,7 @@ void yaw_callback(const std_msgs::Float32& yaw_in) {
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_node");
 	ros::NodeHandle nh;
-	ros::Rate loop_rate(10);
+	ros::Rate loop_rate(100);
 
 	ros::Subscriber u_sub;
 	u_sub = nh.subscribe("desired_u", 1, u_callback);

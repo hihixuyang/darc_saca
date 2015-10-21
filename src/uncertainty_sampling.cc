@@ -18,19 +18,17 @@ float Normal(void) {
 
 Eigen::VectorXf SampleGaussian(const Eigen::VectorXf& mean,
 															 const Eigen::MatrixXf& variance) {
-	/*int size = mean.rows();
+	int size = mean.rows();
 	Eigen::VectorXf sample(size);
 	for (int j = 0; j < size; ++j) {
 		sample[j] = Normal();
 	}
 
 	Eigen::JacobiSVD<Eigen::MatrixXf>
-		svd(var, Eigen::ComputerFullU | Eigen::ComputeFullV);
+	svd(variance, Eigen::ComputeFullU | Eigen::ComputeFullV);
 	Eigen::MatrixXf D = Eigen::MatrixXf::Zero(size, size);
 	for (int j = 0; j < size; ++j) {
 		D(j,j) = sqrt((svd.singularValues())[j]);
 	}
 	return svd.matrixU()*D*sample + mean;
-	*/
-	return mean;
 }
