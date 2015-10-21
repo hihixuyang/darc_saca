@@ -132,7 +132,9 @@ include_directories(
 
 ## Declare a C++ executable
  add_executable(darc_saca_node src/darc_saca_node.cpp
-	 src/QuadrotorBase.cc)
+	 src/QuadrotorBase.cc
+	 src/uncertainty_sampling.cc
+)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
