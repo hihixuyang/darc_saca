@@ -1,12 +1,10 @@
-#include "linear_programming.h"
+#include "linear_programming_3d.h"
+#include <cmath>
+#include <iostream>
 
 // From ORCA_3D
-bool linearProgram1(const std::vector<Plane>& planes,
-										size_t planeNo,
-										Line& line,
-										float radius,
-										const Vector3& optVelocity,
-										bool directionOpt,
+bool linearProgram1(const std::vector<Plane>& planes,	size_t planeNo,	Line& line,
+										float radius,	const Vector3& optVelocity,	bool directionOpt,
 										Vector3& result)  {
   const float dotProduct = line.point * line.direction;
   const float discriminant = sqr(dotProduct) + sqr(radius) - absSq(line.point);
@@ -38,11 +36,9 @@ bool linearProgram1(const std::vector<Plane>& planes,
     if (denominator >= 0.0f) {
       // Plane i bounds line on the left. 
       tLeft = max(tLeft, t);
-		  //tLeft = std::max(tLeft,t);
     } else {
       // Plane i bounds line on the right. 
       tRight = min(tRight, t);
-		  //tRight = std::min(tRight,t);
     }
 
     if (tLeft > tRight) {
@@ -75,11 +71,8 @@ bool linearProgram1(const std::vector<Plane>& planes,
 }
 
 // From ORCA_3D
-bool linearProgram2(const std::vector<Plane>& planes,
-										size_t planeNo,
-										float radius,
-										const Vector3& optVelocity,
-										bool directionOpt,
+bool linearProgram2(const std::vector<Plane>& planes,	size_t planeNo,
+										float radius,	const Vector3& optVelocity,	bool directionOpt,
 										Vector3& result) {
   const float planeDist = planes[planeNo].point * planes[planeNo].normal;
   const float planeDistSq = sqr(planeDist);
@@ -94,28 +87,32 @@ bool linearProgram2(const std::vector<Plane>& planes,
 
   if (directionOpt) {
     // Project direction optVelocity on plane planeNo 
-    const Vector3 planeOptVelocity = optVelocity - (optVelocity * planes[planeNo].normal) * planes[planeNo].normal;
+    const Vector3 planeOptVelocity = optVelocity
+			-	(optVelocity * planes[planeNo].normal) * planes[planeNo].normal;
     const float planeOptVelocityLengthSq = absSq(planeOptVelocity); 
     if (planeOptVelocityLengthSq <= RVO_EPSILON) {
       result = planeCenter;
     } else {
-      result = planeCenter + std::sqrt(planeRadiusSq / planeOptVelocityLengthSq) * planeOptVelocity; 
+      result = planeCenter + std::sqrt(planeRadiusSq / planeOptVelocityLengthSq)
+				*	planeOptVelocity; 
     }
   } else {
     // Project point optVelocity on plane planeNo 
-    result = optVelocity + ((planes[planeNo].point - optVelocity) * planes[planeNo].normal) * planes[planeNo].normal;
+    result = optVelocity
+			+ ((planes[planeNo].point - optVelocity) * planes[planeNo].normal)
+			  * planes[planeNo].normal;
     // If outside planeCircle, project on planeCircle 
     if (absSq(result) > radiusSq) {
       const Vector3 planeResult = result - planeCenter;
       const float planeResultLengthSq = absSq(planeResult);
-      result = planeCenter + std::sqrt(planeRadiusSq / planeResultLengthSq) * planeResult;
+      result = planeCenter + std::sqrt(planeRadiusSq / planeResultLengthSq)
+				* planeResult;
     }
   }
 
   for (size_t i = 0; i < planeNo; ++i) {
     if (planes[i].normal * (planes[i].point - result) > 0.0f) {
       // Result does not satisfy constraint i. Compute new optimal result.
-
       // Compute intersection line of plane i and plane planeNo. 
       Vector3 crossProduct = cross(planes[i].normal, planes[planeNo].normal);
       
@@ -128,9 +125,12 @@ bool linearProgram2(const std::vector<Plane>& planes,
       Line line;
       line.direction = normalize(crossProduct);
       const Vector3 lineNormal = cross(line.direction, planes[planeNo].normal);
-      line.point = planes[planeNo].point + (((planes[i].point - planes[planeNo].point) * planes[i].normal) / (lineNormal * planes[i].normal)) * lineNormal;
+      line.point = planes[planeNo].point	+ (
+				((planes[i].point - planes[planeNo].point) * planes[i].normal) /
+				(lineNormal * planes[i].normal)) * lineNormal;
 
-      if (!linearProgram1(planes, i, line, radius, optVelocity, directionOpt, result)) {
+      if (!linearProgram1(planes, i, line, radius, optVelocity,
+													directionOpt, result)) {
         return false;
       }
     }
@@ -139,10 +139,8 @@ bool linearProgram2(const std::vector<Plane>& planes,
 }
     
 // From ORCA_3D
-size_t linearProgram3(const std::vector<Plane>& planes,
-											double radius,
-											const Vector3& optVelocity,
-											bool directionOpt,
+size_t linearProgram3(const std::vector<Plane>& planes,	double radius,
+											const Vector3& optVelocity,	bool directionOpt,
 											Vector3& result)  {
   if (directionOpt) {
     // Optimize direction. Note that the optimization velocity is of unit
@@ -161,7 +159,8 @@ size_t linearProgram3(const std::vector<Plane>& planes,
       // Result does not satisfy constraint i. Compute new optimal result. 
       const Vector3 tempResult = result;
         
-      if (!linearProgram2(planes, i, radius, optVelocity, directionOpt, result)) {
+      if (!linearProgram2(planes, i, radius, optVelocity,
+													directionOpt, result)) {
         result = tempResult;
         return i;
       }
@@ -171,10 +170,8 @@ size_t linearProgram3(const std::vector<Plane>& planes,
 }
   
 // From ORCA_3D
-void linearProgram4(const std::vector<Plane>& planes,
-										size_t beginPlane,
-										float radius,
-										Vector3& result) {
+void linearProgram4(const std::vector<Plane>& planes,	size_t beginPlane,
+										float radius,	Vector3& result) {
   float distance = 0.0f;
 
   for (size_t i = beginPlane; i < planes.size(); ++i) {
@@ -199,7 +196,8 @@ void linearProgram4(const std::vector<Plane>& planes,
         } else {
           // Plane.point is point on line of intersection between plane i and plane j
           const Vector3 lineNormal = cross(crossProduct, planes[i].normal);
-          plane.point = planes[i].point + (((planes[j].point - planes[i].point) * planes[j].normal) / (lineNormal * planes[j].normal)) * lineNormal;
+          plane.point = planes[i].point + (((planes[j].point - planes[i].point)
+					  * planes[j].normal) / (lineNormal * planes[j].normal)) * lineNormal;
         }
 
         plane.normal = normalize(planes[j].normal - planes[i].normal);
@@ -208,7 +206,8 @@ void linearProgram4(const std::vector<Plane>& planes,
 
       const Vector3 tempResult = result;
 
-      if (linearProgram3(projPlanes, radius, planes[i].normal, true, result) < projPlanes.size()) {
+      if (linearProgram3(projPlanes, radius, planes[i].normal, true, result)
+					< projPlanes.size()) {
         // This should in principle not happen.  The result is by definition
         // already in the feasible region of this linear program. If it fails,
         // it is due to small floating point error, and the current result is
@@ -220,61 +219,3 @@ void linearProgram4(const std::vector<Plane>& planes,
     }
   }
 }
-  
-Eigen::Vector3f calculateNewU(const std::vector< Plane >& halfplanes,
-															const Eigen::Vector3f& uCurr,
-															const Eigen::Vector3f& uGoal) {  
-  double maxSpeed = 10.0; 
-  Vector3 prefV_(uGoal[0]-uCurr[0], uGoal[1]-uCurr[1], uGoal[2]-uCurr[2]);
-  Vector3 newV_;
-        
-  size_t planeFail = linearProgram3(halfplanes, maxSpeed, prefV_, false, newV_);
-  if(planeFail < halfplanes.size()) {
-    linearProgram4(halfplanes, planeFail, maxSpeed, newV_);
-  }
-   
-  Eigen::Vector3f newV;
-    
-  newV << newV_.x() + uCurr[0], newV_.y() + uCurr[1], newV_.z() + uCurr[2];
-
-  for (int i = 0; i < 3; i++) {
-    if(newV[i] < -1.0) {
-      newV[i] = -1.0;
-      std::cout << "SAT" << std::endl;
-    } else if (newV[i] > 1.0) {
-      newV[i] = 1.0;
-      std::cout << "SAT" << std::endl;
-    }
-  }  
-  return newV;
-} 
-
-Eigen::Vector3f calculateNewU(const std::vector< Plane >& halfplanes,
-															const Eigen::Vector3f& uCurr) {
-  double maxSpeed = 3.0; 
-  //Vector3 prefV_(prefDelta[0], prefDelta[1], prefDelta[2]);
-  Vector3 prefV_(0.0,0.0,0.0);
-  Vector3 newV_;
-        
-  size_t planeFail = linearProgram3(halfplanes, maxSpeed, prefV_, false, newV_);
-  if(planeFail < halfplanes.size()) {
-    linearProgram4(halfplanes, planeFail, maxSpeed, newV_);
-  }
-   
-  Eigen::Vector3f newV;
-    
-  //newV << newV_.x(), newV_.y(), newV_.z();
-  newV << newV_.x() + uCurr[0], newV_.y() + uCurr[1], newV_.z() + uCurr[2];
-    
-  //std::cout << "newV: " << newV.transpose() << std::endl;
-  /*for(int i = 0; i < 3; i++) 
-    if(newV[i] < -1.0) {
-      newV[i] = -1.0;
-      std::cout << "SAT" << std::endl;
-     } else if (newV[i] > 1.0) {
-       newV[i] = 1.0;
-       std::cout << "SAT" << std::endl;
-     }
-   }*/    
-  return newV;
-} 

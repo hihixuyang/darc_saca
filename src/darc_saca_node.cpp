@@ -23,18 +23,15 @@ int main(int argc, char* argv[]) {
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(100);
 
-	ros::Subscriber u_sub;
-	u_sub = nh.subscribe("desired_u", 1, u_callback);
-	ros::Subscriber yaw_sub;
-	yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
+	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, u_callback);
+	ros::Subscriber yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
 
-	ros::Publisher pos_pub;
-	pos_pub = nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
-	ros::Publisher quat_pub;
-	quat_pub = nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
+	ros::Publisher pos_pub = nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
+	ros::Publisher quat_pub = nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
 	QuadrotorBase quad;
   quad.Setup();
+	
 	QuadrotorBase::State x0 = QuadrotorBase::State::Zero();
 	x0[2] = 1.2;
 	quad.set_x(x0);
@@ -59,11 +56,10 @@ int main(int argc, char* argv[]) {
 		quat_out.y = q_curr.y();
 		quat_out.z = q_curr.z();
 		quat_pub.publish(quat_out);
+
+		// Send to VREP
 		
 		loop_rate.sleep();
 	}
-
-
-	
 	return 0;
 }

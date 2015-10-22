@@ -34,9 +34,9 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		-cphi*stheta, sphi, cphi*ctheta;
 	
 	Eigen::Matrix3f I;
-	I << 0.1, 0,     0,
-		   0,     0.1, 0,
-		   0,     0,     0.4;
+	I << 0.1, 0,   0,
+		   0,   0.1, 0,
+		   0,   0,   0.4;
 
 	double comp = g.norm()/(cphi*ctheta);
 	double max_climb_rate = 0.3;
@@ -44,8 +44,8 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	float max_angle = 15.0f*M_PI/180.0f;
-	tau[0] = kp2*(-max_angle*u[1] - phi); // - kd*w[0];
-	tau[1] = kp2*(max_angle*u[0] - theta); // - kd*w[1];
+	tau[0] = kp2*(-max_angle*u[1] - phi);
+	tau[1] = kp2*(max_angle*u[0] - theta);
   tau[2] = kp3*(u[2] - w[2]);
 	
 	State x_dot;
@@ -57,6 +57,8 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 }  // RobotF
 
 void QuadrotorBase::set_z(void) {
+	// Using pixhawk to read angle and angular rates
+	//z_.segment(0,6) = x_.segment(6,6);
 	// Sense position and orientation
 	z_.head(3) = x_.head(3);
 	z_.segment(3,3) = x_.segment(6,3);
