@@ -40,13 +40,13 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 
 	double comp = g.norm()/(cphi*ctheta);
 	double max_climb_rate = 0.3;
-	Eigen::Vector3f T(0, 0, comp + kp1*(max_climb_rate*u[3]-vel[2]));
+	Eigen::Vector3f T(0, 0, comp + kp1*(max_climb_rate*u[2]-vel[2]));
 	
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	float max_angle = 15.0f*M_PI/180.0f;
 	tau[0] = kp2*(-max_angle*u[1] - phi);
 	tau[1] = kp2*(max_angle*u[0] - theta);
-  tau[2] = kp3*(u[2] - w[2]);
+  tau[2] = kp3*(u[3] - w[2]);
 	
 	State x_dot;
 	x_dot.segment(0,3) = vel;

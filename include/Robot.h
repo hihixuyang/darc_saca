@@ -22,10 +22,14 @@ public:
   // Initialize matrices and other things
   virtual void Setup(void) = 0;
 
-  void set_x(const State& x_in) {
-    x_ = x_in;
+  void set_x(const State& x) {
+    x_ = x;
   }  // set_x
 
+  void set_input(const Input& u) {
+		u_ = u;
+	}
+	
   // Update state estimate from input
   void ApplyInput(const Input& u) {
     x_ = RobotG(x_, u);
@@ -42,6 +46,8 @@ protected:
   typedef Eigen::Matrix<float, Z_DIM, X_DIM> ZXmat;
     
   State x_, x_hat_;
+	Input u_;
+	
   XXmat M_; // True process noise, could be different than Kalman
 	ZZmat N_; // True observation noise, coudl be differen than Kalman
 	
