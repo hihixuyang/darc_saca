@@ -36,13 +36,14 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[2] = 1.2;
 	quad.set_x(x0);
-	
-	while(ros::ok()) {
-		ros::spinOnce();
 
-		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+	while(ros::ok()) {
+
+		ros::spinOnce();
 		std::vector<Obstacle3d> obstacle_list;
 		obstacle_list.clear();
+		
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 

@@ -22,7 +22,7 @@ protected:
 	Input desired_u_; // Desired input from user or some high-level controller
 	
 	XXmat A_;  // Used to store State jacobian
-	XXmat M_, Mtau_;
+	XXmat Mtau_;
 	Eigen::MatrixXf Z_;
 	
 	std::vector<halfplane> halfplanes_;

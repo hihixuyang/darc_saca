@@ -6,16 +6,6 @@ void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = Eigen::Matrix3f::Zero();
 	float scale = 1.0;
 	Z_.block<3,3>(0,0) = scale*scale*0.1*0.1*Eigen::Matrix3f::Identity();
-
-	M_ = XXmat::Zero();
-	double vv = 0.2;
-	M_.block<3,3>(0,0) = scale*scale*vv*vv*Eigen::Matrix3f::Identity();
-	double aa = 0.1;
-	M_.block<3,3>(3,3) = scale*scale*aa*aa*Eigen::Matrix3f::Identity();
-	double rr = 0.05;
-	M_.block<3,3>(6,6) = scale*scale*rr*rr*Eigen::Matrix3f::Identity();
-	double ww = 0.025;
-	M_.block<3,3>(9,9) = scale*scale*ww*ww*Eigen::Matrix3f::Identity();
 }  // SetupNoise
 
 void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
@@ -151,7 +141,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	if (plane_fail < halfplanes_converted.size()) {
 		linearProgram4(halfplanes_converted, plane_fail, max_speed, new_v);
 	}
-	delta_u_ << new_v.x(), new_v.y(), new_v.z();
+	delta_u_ << new_v.x(), new_v.y(), new_v.z(), 0.0;
 }
 
 void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
