@@ -17,16 +17,15 @@ public:
 	Eigen::VectorXf IntersectionPoint(const Eigen::VectorXf& current_position,
 																		const Eigen::VectorXf& desired_position);
 
-private:
-	float t, u, v;  // Intersection defining variables
-	
 	bool IsTrueSeeable(const Eigen::VectorXf& position);
 
 	bool IsTranslatedSeeable(const Eigen::VectorXf& position);
 
+protected:
+	float t_, u_, v_;  // Intersection defining variables
+
 	void SolveForIntersection(const Eigen::VectorXf& current_position,
 														const Eigen::VectorXf& desired_position);
-
 };
 
 #endif

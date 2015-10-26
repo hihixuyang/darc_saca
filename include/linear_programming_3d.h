@@ -31,4 +31,6 @@ size_t linearProgram3(const std::vector<Plane>& planes,	double radius,
 											const Vector3& optVelocity,	bool directionOpt,
 											Vector3& result);
 
+void linearProgram4(const std::vector<Plane>& planes,	size_t beginPlane,
+										float radius,	Vector3& result);
 #endif

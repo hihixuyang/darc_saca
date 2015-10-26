@@ -17,6 +17,12 @@ public:
 	virtual Eigen::VectorXf IntersectionPoint(const Eigen::VectorXf& current_position,
 																						const Eigen::VectorXf& desired_position) = 0;
 	
+  // Check dot product of position and normal of true vertices
+	virtual bool IsTrueSeeable(const Eigen::VectorXf& position) = 0;
+
+	// Check dot product of position and normal of translated vertices
+	virtual bool IsTranslatedSeeable(const Eigen::VectorXf& position) = 0;
+
 protected:
 	std::vector<Eigen::VectorXf> true_vertices_;
 	std::vector<Eigen::VectorXf> translated_vertices_;  // Minkowski sum result
@@ -26,16 +32,9 @@ protected:
   // Add noise to definition of obstacle
 	void MakeNoisy(float noise);
 
-  // Check dot product of position and normal of true vertices
-	virtual bool IsTrueSeeable(const Eigen::VectorXf& position) = 0;
-
-	// Check dot product of position and normal of translated vertices
-	virtual bool IsTranslatedSeeable(const Eigen::VectorXf& position) = 0;
-
 	// Solve for the intersection varaibles
 	virtual void SolveForIntersection(const Eigen::VectorXf& current_position,
 																		const Eigen::VectorXf& desired_position) = 0;
-
 };
 
 #endif

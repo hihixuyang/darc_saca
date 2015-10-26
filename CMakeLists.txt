@@ -134,6 +134,7 @@ include_directories(
  add_executable(darc_saca_node src/darc_saca_node.cpp
 	 src/QuadrotorBase.cc
 	 src/uncertainty_sampling.cc
+	 src/linear_programming_3d.cc
 	 src/QuadrotorACABase.cc
 	 src/QuadrotorACA3d.cc
 	 src/Obstacle.cc

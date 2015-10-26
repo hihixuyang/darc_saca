@@ -214,7 +214,6 @@ void linearProgram4(const std::vector<Plane>& planes,	size_t beginPlane,
         // kept.
         result = tempResult;
       }
-
       distance = planes[i].normal * (planes[i].point - result);
     }
   }

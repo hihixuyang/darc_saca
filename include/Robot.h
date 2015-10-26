@@ -31,10 +31,10 @@ public:
 	}
 	
   // Update state estimate from input
-  void ApplyInput(const Input& u) {
-    x_ = RobotG(x_, u);
+  void ApplyInput() {
+    x_ = RobotG(x_, u_);
 		set_z();
-		KalmanFilter(u);
+		KalmanFilter(u_);
   }  // ApplyInput
 
   float radius() { return radius_; }

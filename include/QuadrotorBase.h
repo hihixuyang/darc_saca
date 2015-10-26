@@ -23,8 +23,6 @@ public:
 protected:
 	State RobotF(const State& x0, const Input& u0);
 	void set_z(void);
-	
-
 };
 
 #endif

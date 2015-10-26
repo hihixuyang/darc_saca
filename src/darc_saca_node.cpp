@@ -6,7 +6,8 @@
 #include <std_msgs/Float32.h>
 #include <Eigen/Dense>
 
-#include "QuadrotorBase.h"
+#include "QuadrotorACA3d.h"
+#include "Obstacle3d.h"
 
 Eigen::Vector3f u_goal;
 void u_callback(const geometry_msgs::Vector3& u_in) {
@@ -29,18 +30,21 @@ int main(int argc, char* argv[]) {
 	ros::Publisher pos_pub = nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
 	ros::Publisher quat_pub = nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
-	QuadrotorBase quad;
+	QuadrotorACA3d quad;
   quad.Setup();
 	
-	QuadrotorBase::State x0 = QuadrotorBase::State::Zero();
+	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
 	while(ros::ok()) {
 		ros::spinOnce();
 
-		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], yaw_input, u_goal[2]);
-		quad.ApplyInput(u_curr);
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		std::vector<Obstacle3d> obstacle_list;
+		obstacle_list.clear();
+		quad.AvoidCollisions(u_curr, obstacle_list);
+		quad.ApplyInput();
 
 		Eigen::Vector3f pos_curr = quad.true_position();
 		geometry_msgs::Vector3 pos_out;
@@ -56,8 +60,6 @@ int main(int argc, char* argv[]) {
 		quat_out.y = q_curr.y();
 		quat_out.z = q_curr.z();
 		quat_pub.publish(quat_out);
-
-		// Send to VREP
 		
 		loop_rate.sleep();
 	}

@@ -6,14 +6,6 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// State = [pos vel orient angular_vel]
 	// Input = [roll, pitch, yaw_rate, climb_rate]
-
-	float kdrag = 0.35;
-	float kd = 5.0;
-	float kp1 = 1.0;
-	float kp2 = 10.0;
-	float kp3 = 1.0;
-	float kp4 = 0.05;
-
 	Eigen::Vector3f g(0,0,9.812);
 	Eigen::Vector3f vel = x.segment(3,3);
 	Eigen::Vector3f r = x.segment(6,3);
@@ -34,23 +26,30 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		-cphi*stheta, sphi, cphi*ctheta;
 	
 	Eigen::Matrix3f I;
-	I << 0.1, 0,   0,
-		   0,   0.1, 0,
-		   0,   0,   0.4;
+	I << 0.6, 0,   0,
+		   0,   0.6, 0,
+		   0,   0,   0.9;
 
-	double comp = g.norm()/(cphi*ctheta);
-	double max_climb_rate = 0.3;
+	float comp = g.norm()/(cphi*ctheta);
+	float max_climb_rate = 0.5;
+	float kp1 = 2.0;
 	Eigen::Vector3f T(0, 0, comp + kp1*(max_climb_rate*u[2]-vel[2]));
 	
-	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	float max_angle = 15.0f*M_PI/180.0f;
-	tau[0] = kp2*(-max_angle*u[1] - phi);
-	tau[1] = kp2*(max_angle*u[0] - theta);
-  tau[2] = kp3*(u[3] - w[2]);
+	float max_yaw_rate = 45.0f*M_PI/180.0f;
+	float kp2 = 1.0;
+	float kd  = 0.6;
+	float kp3 = 2.0;
+	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
+	// Control about roll, pitch, yaw rate
+	tau[0] = kp2*(-max_angle*u[1] - phi) - kd*w[0];
+	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
+  tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
 	
+	float kdrag = 0.75;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = R*T -g -kdrag*vel;
+	x_dot.segment(3,3) = R*T - g - kdrag*vel;
 	x_dot.segment(6,3) = w;
 	x_dot.segment(9,3) = I.inverse()*(tau + w.cross(I*w));
 	return x_dot + SampleGaussian(State::Zero(), M_);
@@ -68,15 +67,18 @@ void QuadrotorBase::set_z(void) {
 void QuadrotorBase::Setup(void) {
 	// True process noise (Does not have to be same as Kalman Q)
 	M_ = XXmat::Zero();
+	/*
   M_.block<3,3>(0,0) = 0.025*0.025*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(3,3) = 0.05*0.05*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(6,6) = 0.025*0.025*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(9,9) = 0.05*0.05*Eigen::Matrix3f::Identity();
-	
+	*/
 	// True observation noise (Does not have to be same as Kalman R)
 	N_ = ZZmat::Zero();
+	/*
 	N_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
 	N_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
+	*/
 	
 	// Kalman process noise
   Q_ = XXmat::Zero();
