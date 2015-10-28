@@ -88,7 +88,7 @@ void QuadrotorBase::Setup(void) {
   Q_.block<3,3>(6,6) = 0.025*0.025*Eigen::Matrix3f::Identity();
   Q_.block<3,3>(9,9) = 0.05*0.05*Eigen::Matrix3f::Identity();
     
-  // Kalman observation noise
+1  // Kalman observation noise
   R_ = ZZmat::Zero();
   R_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
   R_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
