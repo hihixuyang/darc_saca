@@ -2,6 +2,18 @@
 #include "linear_programming_3d.h"
 #include <iostream>
 
+QuadrotorACA3d::QuadrotorACA3d(void) {
+	time_horizon_ = 1.0;
+	this->Setup();
+	this->SetupNoise();
+};
+
+QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
+	time_horizon_ = time_horizon;
+	this->Setup();
+	this->SetupNoise();
+}
+
 void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = Eigen::Matrix3f::Zero();
 	float scale = 1.0;
@@ -50,7 +62,9 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction() {
-	State x_tilde = x_hat_;
+	// TODO: Find out why x_hat is going to NaN!
+	//State x_tilde = x_hat_;
+	State x_tilde = x_;
 	x_tilde.head(3) = Position::Zero();
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
@@ -65,12 +79,13 @@ Eigen::VectorXf QuadrotorACA3d::trajectory_position(size_t time_step) {
 
 std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	std::vector<Obstacle3d>& obstacle_list) {
+	
 	// Iterate over obstacles
 	std::vector<int> potential_colliding_obstacle_indices;
   for (int obstacle_index; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
-		if (obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position()))
+		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
+				&& obstacle_list[obstacle_index].IsTrueSeeable(true_position()))  //&& obstacle_list[obstacle_index].IsTrueSeeable(est_position()))
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 	}
 	return potential_colliding_obstacle_indices;
@@ -151,14 +166,16 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	ClearHalfplanes();
  
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 20; loop_index++) {
+	for (int loop_index = 0; loop_index < 20; ++loop_index) {
 		ForwardPrediction();
+		std::cout << "Desired z: " << desired_position()[2] << std::endl;
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = CheckForCollision(obstacle_list,
 																				potential_colliding_planes);
 	  if (found_collision) {
 			CalculateDeltaU();
+			std::cout << halfplanes_.size() << std::endl;
 			ClearHalfplanes();
 		} else {
 			break;

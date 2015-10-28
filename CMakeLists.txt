@@ -139,6 +139,7 @@ include_directories(
 	 src/QuadrotorACA3d.cc
 	 src/Obstacle.cc
 	 src/Obstacle3d.cc
+	 src/wallVertices.cpp
 )
 
 ## Add cmake target dependencies of the executable

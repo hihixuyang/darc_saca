@@ -30,15 +30,16 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		   0,   0.6, 0,
 		   0,   0,   0.9;
 
-	float comp = g.norm()/(cphi*ctheta);
 	float max_climb_rate = 0.5;
 	float kp1 = 2.0;
-	Eigen::Vector3f T(0, 0, comp + kp1*(max_climb_rate*u[2]-vel[2]));
+	Eigen::Vector3f T(0,
+										0,
+										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
 	
-	float max_angle = 15.0f*M_PI/180.0f;
+	float max_angle = 30.0f*M_PI/180.0f;
 	float max_yaw_rate = 45.0f*M_PI/180.0f;
-	float kp2 = 1.0;
-	float kd  = 0.6;
+	float kp2 = 15.1;
+	float kd  = 2.5;
 	float kp3 = 2.0;
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	// Control about roll, pitch, yaw rate
@@ -46,7 +47,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
   tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
 	
-	float kdrag = 0.75;
+	float kdrag = 2.5;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
 	x_dot.segment(3,3) = R*T - g - kdrag*vel;

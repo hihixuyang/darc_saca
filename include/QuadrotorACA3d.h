@@ -10,6 +10,9 @@
 class QuadrotorACA3d : public QuadrotorACABase {
 // Put linear programming and algorithm stuff here
 public:
+	QuadrotorACA3d(void);
+	QuadrotorACA3d(float time_horizon);
+	
   void SetupNoise(void);  // Set the values of Z, M, and initialize Mtau
 	void AvoidCollisions(const Input& desired_input,
 											 std::vector<Obstacle3d>& obstacle_list);

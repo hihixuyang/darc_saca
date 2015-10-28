@@ -7,8 +7,11 @@
 class Obstacle {
 public:
 	// Return the normal of a plane
+	Eigen::VectorXf true_vertices(int index);
+	Eigen::VectorXf translated_vertices(int index);
+	Eigen::VectorXf noise_vertices(int index);
 	Eigen::VectorXf normal(void);
-
+	
 	// Check if a line intersects the plane
 	virtual bool IsIntersecting(const Eigen::VectorXf& current_position,
 															const Eigen::VectorXf& desired_position) = 0;
