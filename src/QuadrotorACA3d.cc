@@ -1,15 +1,29 @@
 #include "QuadrotorACA3d.h"
 #include "linear_programming_3d.h"
-#include <iostream>
+#include <stdio.h>
 
 QuadrotorACA3d::QuadrotorACA3d(void) {
 	time_horizon_ = 1.0;
+
+	desired_u_ = Input::Zero();
+	delta_u_ = Input::Zero();
+	g_ = State::Zero();
+	gp_.resize(3);
+	gm_.resize(3);
+	
 	this->Setup();
 	this->SetupNoise();
 };
 
 QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 	time_horizon_ = time_horizon;
+
+	desired_u_ = Input::Zero();
+	delta_u_ = Input::Zero();
+	g_ = State::Zero();
+	gp_.resize(3);
+	gm_.resize(3);
+
 	this->Setup();
 	this->SetupNoise();
 }
@@ -24,48 +38,46 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 	float j_step = 0.0009765625;
 	p_star_.clear();
 	J_.clear();
+
 	p_star_.push_back(x.head(3));
 	Mtau_ = XXmat::Zero();
-
-	static State g;
-	static std::vector<State> gP(3), gM(3);
-	static Input uP, uM;
-	static Eigen::Matrix3f tmp_J;
 
 	// Loop over all timesteps
 	for (size_t time_step = 1; time_step < static_cast<size_t>(time_horizon_/dt_);
 			 time_step++) {
 		if (time_step == 1) {
-			g = RobotG(x, u);
+			g_ = RobotG(x, u);
 			A_ = FindStateJacobian(x, u);
 		} else {
-			g = RobotG(g, u);
-			A_ = FindStateJacobian(g, u);
+			g_ = RobotG(g_, u);
+			A_ = FindStateJacobian(g_, u);
 		}
-		p_star_.push_back(g.head(3));  // Save position with no input change
+		p_star_.push_back(g_.head(3));  // Save position with no input change
 	  MotionVarianceIntegration();  // Update Mtau_
 
+		Eigen::Matrix3f tmp_J = Eigen::Matrix3f::Zero();
     for (int dim = 0; dim < 3; dim++) {  // Loop over input dimension
-			uP = u; uP[dim] += j_step;
-			uM = u; uM[dim] -= j_step;
+			Input up = u;
+			up[dim] += j_step;
+			Input um = u;
+			um[dim] -= j_step;
 			if (time_step == 1) {
-				gP[dim] = RobotG(x, uP);
-				gM[dim] = RobotG(x, uM);
+				gp_[dim] = RobotG(x, up);
+				gm_[dim] = RobotG(x, um);
 			} else {
-				gP[dim] = RobotG(gP[dim], uP);
-				gM[dim] = RobotG(gM[dim], uM);
+				gp_[dim] = RobotG(gp_[dim], up);
+				gm_[dim] = RobotG(gm_[dim], um);
 			}
-			tmp_J.col(dim) = (gP[dim].head(3) - gM[dim].head(3)) / (2.0*j_step);
+			tmp_J.col(dim) = (gp_[dim].head(3) - gm_[dim].head(3)) / (2.0*j_step);
 		}
 		J_.push_back(tmp_J);
-	}		
+	}
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction() {
 	// TODO: Find out why x_hat is going to NaN!
-	//State x_tilde = x_hat_;
-	State x_tilde = x_;
-	x_tilde.head(3) = Position::Zero();
+	State x_tilde = x_hat_;
+	//x_tilde.head(3) = Position::Zero();
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -82,10 +94,10 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	
 	// Iterate over obstacles
 	std::vector<int> potential_colliding_obstacle_indices;
-  for (int obstacle_index; obstacle_index < obstacle_list.size();
+  for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(true_position()))  //&& obstacle_list[obstacle_index].IsTrueSeeable(est_position()))
+				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position()))
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 	}
 	return potential_colliding_obstacle_indices;
@@ -110,6 +122,10 @@ bool QuadrotorACA3d::CheckForCollision(std::vector<Obstacle3d>& obstacle_list,
 			if (obstacle_list[*plane_index].IsIntersecting(current_position,
 																										 desired_position)) {
 				// If one is found, create the halfplane for that collision
+				Eigen::Vector3f intersection_point =
+					obstacle_list[*plane_index].IntersectionPoint(current_position, desired_position);
+				//printf("Intersection: %0.2f, %0.2f, %0.2f\n",
+				//			 intersection_point[0], intersection_point[1], intersection_point[2]);
 			  CreateHalfplane(obstacle_list[*plane_index].IntersectionPoint(current_position, desired_position),
 												obstacle_list[*plane_index].normal());
 				// Then stop checking, collision is found so no need to keep going
@@ -135,7 +151,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 		Eigen::Vector3f a;
 		a.transpose() = halfplanes_[halfplane_index].normal_.transpose()*J_.back();
 		float b = (halfplanes_[halfplane_index].normal_.transpose()
-							 * (halfplanes_[halfplane_index].pos_colliding_ - desired_position()) + 0.0002) / a.norm();
+							 * (halfplanes_[halfplane_index].pos_colliding_ - desired_position()) + 0.002) / a.norm();
 		a.normalize();
 		
 		Plane tmp_halfplane_converted;
@@ -149,7 +165,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	}
 	
 	float max_speed = 3.0;
-	Vector3 pref_v(0.0, 0.0, 0.0);
+	Vector3 pref_v(desired_u_[0], desired_u_[1], desired_u_[2]);
 	Vector3 new_v;
 	size_t plane_fail = linearProgram3(halfplanes_converted, max_speed, pref_v,
 																		 false, new_v);
@@ -164,19 +180,16 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	ClearHalfplanes();
- 
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 20; ++loop_index) {
+	for (int loop_index = 0; loop_index < 10; ++loop_index) {
 		ForwardPrediction();
-		std::cout << "Desired z: " << desired_position()[2] << std::endl;
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = CheckForCollision(obstacle_list,
 																				potential_colliding_planes);
 	  if (found_collision) {
 			CalculateDeltaU();
-			std::cout << halfplanes_.size() << std::endl;
-			ClearHalfplanes();
+			//ClearHalfplanes();
 		} else {
 			break;
 		}

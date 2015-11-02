@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 #include "uncertainty_sampling.h"
+#include <iostream>
 
 #define _USE_MATH_DEFINES	
 #include <cmath>

@@ -20,7 +20,10 @@ protected:
 	float time_horizon_; 
 	Input delta_u_;  // Change in input calculated from algorithm
 	Input desired_u_; // Desired input from user or some high-level controller
-	
+
+	State g_;
+	std::vector<State> gm_;
+	std::vector<State> gp_;
 	XXmat A_;  // Used to store State jacobian
 	XXmat Mtau_;
 	Eigen::MatrixXf Z_;

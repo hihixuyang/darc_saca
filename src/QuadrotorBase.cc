@@ -30,17 +30,17 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		   0,   0.6, 0,
 		   0,   0,   0.9;
 
-	float max_climb_rate = 0.5;
-	float kp1 = 2.0;
+	float max_climb_rate = 1.0;
+	float kp1 = 10.0;
 	Eigen::Vector3f T(0,
 										0,
 										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
 	
 	float max_angle = 30.0f*M_PI/180.0f;
-	float max_yaw_rate = 45.0f*M_PI/180.0f;
+	float max_yaw_rate = 90.0f*M_PI/180.0f;
 	float kp2 = 15.1;
 	float kd  = 2.5;
-	float kp3 = 2.0;
+	float kp3 = 5.0;
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	// Control about roll, pitch, yaw rate
 	tau[0] = kp2*(-max_angle*u[1] - phi) - kd*w[0];
@@ -66,6 +66,7 @@ void QuadrotorBase::set_z(void) {
 }  // set_z
 
 void QuadrotorBase::Setup(void) {
+	x_hat_ = State::Zero();
 	// True process noise (Does not have to be same as Kalman Q)
 	M_ = XXmat::Zero();
 	/*
@@ -88,12 +89,13 @@ void QuadrotorBase::Setup(void) {
   Q_.block<3,3>(6,6) = 0.025*0.025*Eigen::Matrix3f::Identity();
   Q_.block<3,3>(9,9) = 0.05*0.05*Eigen::Matrix3f::Identity();
     
-1  // Kalman observation noise
+  // Kalman observation noise
   R_ = ZZmat::Zero();
   R_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
   R_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
       
   // Observation mapping
+	H_ = ZXmat::Zero();
 	// Using pixhawk to read angles and angular rates
   //H.block<3,3>(0,6) = Matrix3f::Identity();
   //H.block<3,3>(3,9) = Matrix3f::Identity();
