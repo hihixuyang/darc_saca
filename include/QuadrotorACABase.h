@@ -42,8 +42,8 @@ protected:
 	float sigma(const Eigen::VectorXf& normal);
 
 	// Save a constraint if a collision is found
-	virtual void CreateHalfplane(const Eigen::VectorXf pos_colliding,
-															 const Eigen::VectorXf normal) = 0;
+	virtual void CreateHalfplane(const Eigen::VectorXf& pos_colliding,
+															 const Eigen::VectorXf& normal) = 0;
 
 	// Clear saved constraints for next timestep of algorithm
 	virtual void ClearHalfplanes(void) = 0;

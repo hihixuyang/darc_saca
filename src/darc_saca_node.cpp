@@ -28,10 +28,12 @@ int main(int argc, char* argv[]) {
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, u_callback);
 	ros::Subscriber yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
 
-	ros::Publisher pos_pub = nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
-	ros::Publisher quat_pub = nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
+	ros::Publisher pos_pub =
+		nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
+	ros::Publisher quat_pub =
+		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
-	QuadrotorACA3d quad(1.0);
+	QuadrotorACA3d quad(0.75);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[2] = 1.2;
@@ -46,34 +48,43 @@ int main(int argc, char* argv[]) {
 	while(ros::ok()) {
 
 		ros::spinOnce();
-		std::vector<Obstacle3d> obstacle_list;
-
+		static std::vector<Obstacle3d> obstacle_list;
 		Eigen::VectorXf p = quad.true_position();
 		//Eigen::VectorXf p = Eigen::Vector3f::Zero();
 
-		Obstacle3d wall_0a(v[0].tr - p, v[0].br - p, v[0].bl - p, n[0], quad.radius());
+		Obstacle3d wall_0a(v[0].tr - p, v[0].br - p, v[0].bl - p,
+											 n[0], quad.radius());
 		obstacle_list.push_back(wall_0a);
-		Obstacle3d wall_0b(v[0].tr - p, v[0].tl - p, v[0].bl - p, n[0], quad.radius());
+		Obstacle3d wall_0b(v[0].tr - p, v[0].tl - p, v[0].bl - p,
+											 n[0], quad.radius());
 		obstacle_list.push_back(wall_0b);
-		Obstacle3d wall_1a(v[1].tr - p, v[1].br - p, v[1].bl - p, n[1], quad.radius());
+		Obstacle3d wall_1a(v[1].tr - p, v[1].br - p, v[1].bl - p,
+											 n[1], quad.radius());
 		obstacle_list.push_back(wall_1a);
-		Obstacle3d wall_1b(v[1].tr - p, v[1].tl - p, v[1].bl - p, n[1], quad.radius());
+		Obstacle3d wall_1b(v[1].tr - p, v[1].tl - p, v[1].bl - p,
+											 n[1], quad.radius());
 		obstacle_list.push_back(wall_1b);
-		Obstacle3d wall_2a(v[2].tr - p, v[2].br - p, v[2].bl - p, n[2], quad.radius());
+		Obstacle3d wall_2a(v[2].tr - p, v[2].br - p, v[2].bl - p,
+											 n[2], quad.radius());
 		obstacle_list.push_back(wall_2a);
-		Obstacle3d wall_2b(v[2].tr - p, v[2].tl - p, v[2].bl - p, n[2], quad.radius());
+		Obstacle3d wall_2b(v[2].tr - p, v[2].tl - p, v[2].bl - p,
+											 n[2], quad.radius());
 		obstacle_list.push_back(wall_2b);
-		Obstacle3d wall_3a(v[3].tr - p, v[3].br - p, v[3].bl - p, n[3], quad.radius());
+		Obstacle3d wall_3a(v[3].tr - p, v[3].br - p, v[3].bl - p,
+											 n[3], quad.radius());
 		obstacle_list.push_back(wall_3a);
-		Obstacle3d wall_3b(v[3].tr - p, v[3].tl - p, v[3].bl - p, n[3], quad.radius());
+		Obstacle3d wall_3b(v[3].tr - p, v[3].tl - p, v[3].bl - p,
+											 n[3], quad.radius());
 		obstacle_list.push_back(wall_3b);
-		Obstacle3d wall_4a(v[4].tr - p, v[4].br - p, v[4].bl - p, n[4], quad.radius());
+		Obstacle3d wall_4a(v[4].tr - p, v[4].br - p, v[4].bl - p,
+											 n[4], quad.radius());
 		obstacle_list.push_back(wall_4a);
-		Obstacle3d wall_4b(v[4].tr - p, v[4].tl - p, v[4].bl - p, n[4], quad.radius());
-		obstacle_list.push_back(wall_4b);
+		Obstacle3d wall_4b(v[4].tr - p, v[4].tl - p, v[4].bl - p,
+											 n[4], quad.radius());
+											 obstacle_list.push_back(wall_4b);
 		
-		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.2);
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.2);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 

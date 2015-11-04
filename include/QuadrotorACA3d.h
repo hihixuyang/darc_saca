@@ -35,8 +35,8 @@ private:
 	// Return position at some point on trajectory
 	Eigen::VectorXf trajectory_position(size_t time_step);
 
-	void CreateHalfplane(const Eigen::VectorXf pos_colliding,
-											 const Eigen::VectorXf normal);
+	void CreateHalfplane(const Eigen::VectorXf& pos_colliding,
+											 const Eigen::VectorXf& normal);
 	
 	void ClearHalfplanes(void);
 	

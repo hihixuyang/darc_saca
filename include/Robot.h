@@ -14,7 +14,6 @@
 // W_DIM - Dimension of the workspace
 template <int X_DIM, int U_DIM, int Z_DIM, int W_DIM>
 class Robot {
-
 public:
   typedef Eigen::Matrix<float, X_DIM, 1> State;
   typedef Eigen::Matrix<float, U_DIM, 1> Input;
@@ -116,9 +115,7 @@ protected:
     XZmat K = Pm_*H_.transpose()*(H_*Pm_*H_.transpose() + R_).inverse();
     P_ = (XXmat::Identity() - K*H_)*Pm_;
     x_hat_ = xM + K*(z_ - H_*xM);
-  }  // set_z
-        
-
-};
+  }  // KalmanFilter
+};  // Robot
 
 #endif

@@ -10,7 +10,6 @@ QuadrotorACA3d::QuadrotorACA3d(void) {
 	g_ = State::Zero();
 	gp_.resize(3);
 	gm_.resize(3);
-	
 	this->Setup();
 	this->SetupNoise();
 };  // QuadrotorACA3d
@@ -88,8 +87,8 @@ Eigen::VectorXf QuadrotorACA3d::trajectory_position(size_t time_step) {
 	return p_star_[time_step];
 }  // trajectory_position
 
-void QuadrotorACA3d::CreateHalfplane(const Eigen::VectorXf pos_colliding,
-																		 const Eigen::VectorXf normal) {
+void QuadrotorACA3d::CreateHalfplane(const Eigen::VectorXf& pos_colliding,
+																		 const Eigen::VectorXf& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
 	float b = (normal.transpose() * (pos_colliding - desired_position()) + 0.0002)
@@ -123,7 +122,7 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 }  // FindPotentialCollidingPlanes
 
 bool QuadrotorACA3d::CheckForCollision(std::vector<Obstacle3d>& obstacle_list,
-											 std::vector<int>& index_list) {
+																			 std::vector<int>& index_list) {
 	// First loop over the trajectory, piecewise, and check for collisions
 	int trajectory_index = 1;
 	for (; trajectory_index < static_cast<int>(time_horizon_/dt_);
@@ -162,8 +161,6 @@ bool QuadrotorACA3d::CheckForCollision(std::vector<Obstacle3d>& obstacle_list,
 }
 
 void QuadrotorACA3d::CalculateDeltaU(void) {
-	// Convert halfplanes from [pos_colliding, normal] to ``Plane''
-		
 	float max_speed = 5.0;
 	Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
 	Vector3 new_v;
@@ -175,14 +172,6 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	delta_u_[0] += new_v.x();
 	delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
-
-	for (int index = 0; index < 3; ++index) {
-		if (desired_u_[index] + delta_u_[index] > 1.0) {
-			delta_u_[index] = 1.0 - desired_u_[index];
-		} else if (desired_u_[index] + delta_u_[index] < -1.0) {
-			delta_u_[index] = -1.0 - desired_u_[index];
-		}
-	}
 }  // CalculateDeltaU
 
 void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
@@ -191,7 +180,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	ResetDeltaU();
 	ClearHalfplanes();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 20; ++loop_index) {
+	for (int loop_index = 0; loop_index < 30; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
