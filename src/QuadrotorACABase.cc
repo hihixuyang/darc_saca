@@ -48,20 +48,3 @@ float QuadrotorACABase::sigma(const Eigen::VectorXf& normal) {
 	return VarianceProjection(Mtau_.block(0,0,3,3) + Z_, normal);
 }  // sigma
 
-void QuadrotorACABase::CreateHalfplane(const Eigen::VectorXf pos_colliding,
-																		   const Eigen::VectorXf normal) {
-	halfplane tmp_plane;
-	tmp_plane.pos_colliding_ = pos_colliding;
-	printf("p_col: %0.2f, %0.2f\n", pos_colliding[0], pos_colliding[1]);
-	tmp_plane.normal_ = normal;
-	printf("n: %0.2f, %0.2f\n", normal[0], normal[1]);
-	halfplanes_.push_back(tmp_plane);
-	printf("num planes: %d\n", static_cast<int>(halfplanes_.size()));
-	int k;
-	std::cin >> k;
-}  // CreateHalfplane
-
-void QuadrotorACABase::ClearHalfplanes(void) {
-	halfplanes_.clear();
-}  // ClearHalfplanes
-

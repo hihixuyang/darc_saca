@@ -1,4 +1,5 @@
 #include "QuadrotorBase.h"
+#include <unsupported/Eigen/MatrixFunctions>
 
 #include <iostream>
 
@@ -30,7 +31,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		   0,   0.6, 0,
 		   0,   0,   0.9;
 
-	float max_climb_rate = 1.0;
+	float max_climb_rate = 0.5;
 	float kp1 = 10.0;
 	Eigen::Vector3f T(0,
 										0,
@@ -53,7 +54,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	x_dot.segment(3,3) = R*T - g - kdrag*vel;
 	x_dot.segment(6,3) = w;
 	x_dot.segment(9,3) = I.inverse()*(tau + w.cross(I*w));
-	return x_dot + SampleGaussian(State::Zero(), M_);
+	return x_dot;
 }  // RobotF
 
 void QuadrotorBase::set_z(void) {
@@ -109,7 +110,7 @@ void QuadrotorBase::Setup(void) {
     
   // Robot/integration parameters
   dt_ = 0.02;
-  radius_ = 0.2;
+  radius_ = 0.282;
 }  // Setup
 
 QuadrotorBase::Position QuadrotorBase::true_position(void) {
@@ -117,7 +118,8 @@ QuadrotorBase::Position QuadrotorBase::true_position(void) {
 }  // true_position
 
 QuadrotorBase::Position QuadrotorBase::est_position(void) {
-	return x_hat_.head(3);
+  //return x_hat_.head(3);
+	return Position::Zero();
 }  // est_position
 	
 Eigen::Quaternionf QuadrotorBase::true_quaternion(void) {

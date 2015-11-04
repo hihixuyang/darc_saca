@@ -12,11 +12,6 @@ public:
 	void set_time_horizon(float time_horizon);
 		
 protected:
-	struct halfplane {
-		Eigen::VectorXf pos_colliding_;
-		Eigen::VectorXf normal_;
-	};
-
 	float time_horizon_; 
 	Input delta_u_;  // Change in input calculated from algorithm
 	Input desired_u_; // Desired input from user or some high-level controller
@@ -27,8 +22,6 @@ protected:
 	XXmat A_;  // Used to store State jacobian
 	XXmat Mtau_;
 	Eigen::MatrixXf Z_;
-	
-	std::vector<halfplane> halfplanes_;
 
 	void set_desired_u(const Input& desired_u);
 	void ResetDeltaU(void);
@@ -49,11 +42,11 @@ protected:
 	float sigma(const Eigen::VectorXf& normal);
 
 	// Save a constraint if a collision is found
-	void CreateHalfplane(const Eigen::VectorXf pos_colliding,
-											 const Eigen::VectorXf normal);
+	virtual void CreateHalfplane(const Eigen::VectorXf pos_colliding,
+															 const Eigen::VectorXf normal) = 0;
 
 	// Clear saved constraints for next timestep of algorithm
-	void ClearHalfplanes(void);
+	virtual void ClearHalfplanes(void) = 0;
 
 	// Solve for p_star_ and J_ for a given number of steps
 	virtual void Linearize(const State& x, const Input& u) = 0;

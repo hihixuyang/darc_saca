@@ -3,6 +3,7 @@
 
 #include "QuadrotorACABase.h"
 #include "Obstacle3d.h"
+#include "linear_programming_3d.h"
 
 #include <vector>
 #include <Eigen/Dense>
@@ -18,6 +19,7 @@ public:
 											 std::vector<Obstacle3d>& obstacle_list);
 	
 private:
+	std::vector<Plane> halfplanes_;
 	std::vector<Eigen::Vector3f> p_star_;
 	std::vector<Eigen::Matrix3f> J_;
 
@@ -33,6 +35,11 @@ private:
 	// Return position at some point on trajectory
 	Eigen::VectorXf trajectory_position(size_t time_step);
 
+	void CreateHalfplane(const Eigen::VectorXf pos_colliding,
+											 const Eigen::VectorXf normal);
+	
+	void ClearHalfplanes(void);
+	
 	// Find which obstacles can potentially be colliding
 	std::vector<int>
 		FindPotentialCollidingPlanes(std::vector<Obstacle3d>& obstacle_list);
