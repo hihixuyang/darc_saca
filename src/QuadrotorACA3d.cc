@@ -43,7 +43,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	ResetDeltaU();
 	ClearHalfplanes();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 3; ++loop_index) {
+	for (int loop_index = 0; loop_index < 6; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -185,8 +185,9 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(Position::Zero()))
+				&& obstacle_list[obstacle_index].IsTrueSeeable(true_position())) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
+		}
 	}
 	return potential_colliding_obstacle_indices;
 }  // FindPotentialCollidingPlanes
