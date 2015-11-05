@@ -49,8 +49,8 @@ int main(int argc, char* argv[]) {
 
 		ros::spinOnce();
 		static std::vector<Obstacle3d> obstacle_list;
-		Eigen::VectorXf p = quad.true_position();
-		//Eigen::VectorXf p = Eigen::Vector3f::Zero();
+		//Eigen::VectorXf p = quad.true_position();
+		Eigen::VectorXf p = Eigen::Vector3f::Zero();
 
 		Obstacle3d wall_0a(v[0].tr - p, v[0].br - p, v[0].bl - p,
 											 n[0], quad.radius());

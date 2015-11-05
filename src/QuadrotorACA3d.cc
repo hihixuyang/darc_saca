@@ -75,7 +75,7 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 
 void QuadrotorACA3d::ForwardPrediction() {
 	State x_tilde = x_hat_;
-	x_tilde.head(3) = Position::Zero();
+	//x_tilde.head(3) = Position::Zero();
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -115,7 +115,7 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position()))
+				&& obstacle_list[obstacle_index].IsTrueSeeable(Position::Zero()))
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 	}
 	return potential_colliding_obstacle_indices;
@@ -180,15 +180,15 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	ResetDeltaU();
 	ClearHalfplanes();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 30; ++loop_index) {
+	for (int loop_index = 0; loop_index < 3; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = CheckForCollision(obstacle_list,
 																				potential_colliding_planes);
-	  if (found_collision) {
+		if (found_collision) {
 			CalculateDeltaU();
-			ClearHalfplanes();
+			//ClearHalfplanes();
 		} else {
 			break;
 		}
