@@ -57,7 +57,8 @@ protected:
   XXmat Pm_;       // a-priori covariance
   XXmat P_;        // posterior covariance
   ZXmat H_;        // map state to observation
-    
+
+	XXmat A_;  // State jacobian term
   float dt_;
   float radius_;
     
@@ -90,8 +91,7 @@ protected:
   }  // RobotG
 
   // find jacobian of the state with respect to itself
-  XXmat FindStateJacobian(const State& x, const Input& u) {
-    XXmat A; // State jacobian 
+  void FindStateJacobian(const State& x, const Input& u) {
     double j_step = 0.0009765625;
     State xP, xM, gP, gM;
     for (int i = 0; i < X_DIM; i++) {
@@ -99,9 +99,8 @@ protected:
       xM = x; xM[i] -= j_step;
       gP = RobotG(xP,u);
       gM = RobotG(xM,u);
-      A.col(i) = (gP-gM)/(2.0*j_step);
+      A_.col(i) = (gP-gM)/(2.0*j_step);
     }
-    return A;
   }  // FindStateJacobian
 
 	// Set the observation vector
@@ -110,8 +109,8 @@ protected:
   // Estimate the new state with a kalman filter for a given input
   void KalmanFilter(const Input& u) {
     State xM = RobotG(x_hat_,u);
-    XXmat A = FindStateJacobian(x_hat_,u);
-    Pm_ = A*P_*A.transpose() + Q_;
+    FindStateJacobian(x_hat_,u);
+    Pm_ = A_*P_*A_.transpose() + Q_;
     XZmat K = Pm_*H_.transpose()*(H_*Pm_*H_.transpose() + R_).inverse();
     P_ = (XXmat::Identity() - K*H_)*Pm_;
     x_hat_ = xM + K*(z_ - H_*xM);

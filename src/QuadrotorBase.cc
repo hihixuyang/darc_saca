@@ -48,7 +48,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
   tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
 	
-	float kdrag = 0.75;
+	float kdrag = 1.25;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
 	x_dot.segment(3,3) = R*T - g - kdrag*vel;

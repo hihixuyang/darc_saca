@@ -46,11 +46,10 @@ int main(int argc, char* argv[]) {
 	ROS_ERROR("STARTING LOOP");
 	
 	while(ros::ok()) {
-
 		ros::spinOnce();
 		static std::vector<Obstacle3d> obstacle_list;
-		//Eigen::VectorXf p = quad.true_position();
 		Eigen::VectorXf p = Eigen::Vector3f::Zero();
+		//p = quad.true_position();
 
 		Obstacle3d wall_0a(v[0].tr - p, v[0].br - p, v[0].bl - p, n[0], quad.radius());
 		obstacle_list.push_back(wall_0a);
@@ -74,7 +73,6 @@ int main(int argc, char* argv[]) {
 		obstacle_list.push_back(wall_4b);
 		
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.2);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 
