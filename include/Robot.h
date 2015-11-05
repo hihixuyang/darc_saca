@@ -23,12 +23,12 @@ public:
   virtual void Setup(void) = 0;
 
   void set_x(const State& x) {
-    x_ = x;
-  }  // set_x
+		x_ = x;
+	}  // set_x
 
   void set_input(const Input& u) {
 		u_ = u;
-	}
+	}  // set_input
 	
   // Update state estimate from input
   void ApplyInput() {

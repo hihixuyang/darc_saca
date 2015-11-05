@@ -23,18 +23,48 @@ Obstacle3d::Obstacle3d(const Eigen::Vector3f& v0, const Eigen::Vector3f& v1,
 	noise_vertices_.push_back(v0_tilde);
   noise_vertices_.push_back(v1_tilde);
 	noise_vertices_.push_back(v2_tilde);
-}
+}  // Obstacle3d
 
-bool Obstacle3d::IsTrueSeeable(const Eigen::VectorXf& position) {
+Eigen::Vector3f Obstacle3d::true_vertices(int index) {
+	return true_vertices_[index];
+}  // true_vertices
+
+Eigen::Vector3f Obstacle3d::translated_vertices(int index) {
+	return translated_vertices_[index];
+}  // translated_vertices
+
+Eigen::Vector3f Obstacle3d::noise_vertices(int index) {
+	return noise_vertices_[index];
+}  // noise_vertices
+
+Eigen::Vector3f Obstacle3d::normal(void) {
+	return normal_;
+}  // normal
+
+bool Obstacle3d::IsIntersecting(const Eigen::Vector3f& current_position,
+																const Eigen::Vector3f& desired_position) {
+	SolveForIntersection(current_position, desired_position);
+
+	return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1) && (u_ + v_ <= 1) &&
+		((0 <= t_ && t_ <= 1) || (t_ <= 0 &&  (current_position - noise_vertices_[0]).dot(normal_) < 0.0));
+}  // IsInterecting
+
+Eigen::Vector3f
+  Obstacle3d::IntersectionPoint(const Eigen::Vector3f& current_position,
+																const Eigen::Vector3f& desired_position) {
+	return (1.0 - t_)*current_position + t_*desired_position;
+}  // IntersectionPoint
+
+bool Obstacle3d::IsTrueSeeable(const Eigen::Vector3f& position) {
 	return normal_.transpose()*(position - true_vertices_[0]) > 0.0;
-}
+}  // IsTrueSeeable 
 
-bool Obstacle3d::IsTranslatedSeeable(const Eigen::VectorXf& position) {
+bool Obstacle3d::IsTranslatedSeeable(const Eigen::Vector3f& position) {
 	return normal_.transpose()*(position - translated_vertices_[0]) > 0.0;
-}
+}  // IsTranslatedSeeable
 
-void Obstacle3d::SolveForIntersection(const Eigen::VectorXf& current_position,
-																			const Eigen::VectorXf& desired_position) {
+void Obstacle3d::SolveForIntersection(const Eigen::Vector3f& current_position,
+																			const Eigen::Vector3f& desired_position) {
 	Eigen::Matrix3f A;
 	A.col(0) = current_position - desired_position;
 	A.col(1) = noise_vertices_[1] - noise_vertices_[0];
@@ -45,21 +75,7 @@ void Obstacle3d::SolveForIntersection(const Eigen::VectorXf& current_position,
 	t_ = x[0];
 	u_ = x[1];
 	v_ = x[2];
-}
-
-bool Obstacle3d::IsIntersecting(const Eigen::VectorXf& current_position,
-																const Eigen::VectorXf& desired_position) {
-	SolveForIntersection(current_position, desired_position);
-
-	return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1) && (u_ + v_ <= 1) &&
-		((0 <= t_ && t_ <= 1) || (t_ <= 0 &&  (current_position - noise_vertices_[0]).dot(normal_) < 0.0));
-}
-
-Eigen::VectorXf
-  Obstacle3d::IntersectionPoint(const Eigen::VectorXf& current_position,
-																const Eigen::VectorXf& desired_position) {
-	return (1.0 - t_)*current_position + t_*desired_position;
-}
+}  // SolveForIntersection
 
 	
 	

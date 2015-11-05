@@ -132,14 +132,14 @@ include_directories(
 
 ## Declare a C++ executable
  add_executable(darc_saca_node src/darc_saca_node.cpp
-	 src/QuadrotorBase.cc
 	 src/uncertainty_sampling.cc
 	 src/linear_programming_3d.cc
-	 src/QuadrotorACABase.cc
-	 src/QuadrotorACA3d.cc
-	 src/Obstacle.cc
-	 src/Obstacle3d.cc
 	 src/wallVertices.cpp
+	 src/Obstacle3d.cc
+   src/QuadrotorBase.cc
+	 src/QuadrotorACA3d.cc
+
+
 )
 
 ## Add cmake target dependencies of the executable
