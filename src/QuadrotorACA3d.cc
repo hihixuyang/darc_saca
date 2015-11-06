@@ -12,6 +12,9 @@ QuadrotorACA3d::QuadrotorACA3d(void) {
 	gm_.resize(3);
 	this->Setup();
 	this->SetupNoise();
+
+	p_star_.resize(static_cast<int>(time_horizon_/dt_));
+	J_.resize(static_cast<int>(time_horizon_/dt_));
 };  // QuadrotorACA3d
 
 QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
@@ -25,6 +28,9 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 
 	this->Setup();
 	this->SetupNoise();
+	
+	p_star_.resize(static_cast<int>(time_horizon_/dt_));
+	J_.resize(static_cast<int>(time_horizon_/dt_));
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
@@ -43,11 +49,11 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	ResetDeltaU();
 	ClearHalfplanes();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 6; ++loop_index) {
+	for (int loop_index = 0; loop_index < 10; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
-		found_collision = CheckForCollision(obstacle_list,
+		found_collision = IsThereACollision(obstacle_list,
 																				potential_colliding_planes);
 		if (!found_collision)
 			break;
@@ -79,7 +85,7 @@ void QuadrotorACA3d::MotionVarianceIntegration(void) {
 
 float QuadrotorACA3d::VarianceProjection(const Eigen::Matrix3f& A,
 																				 const Position& b) {
-  float c = 3.841;  // TODO: update this to be a percent?
+  float c = 3.841;
 	Eigen::LLT<Eigen::MatrixXf> lltOfA(A);
 	Eigen::MatrixXf L = lltOfA.matrixL();
 	return c*b.transpose()*L*b;
@@ -101,10 +107,7 @@ float QuadrotorACA3d::sigma(const Position& normal) {
 
 void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 	float j_step = 0.0009765625;
-	p_star_.clear();
-	J_.clear();
-
-	p_star_.push_back(x.head(3));
+	p_star_[0] = x.head(3);
 	Mtau_ = XXmat::Zero();
 
 	// Loop over all timesteps
@@ -117,10 +120,9 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 			g_ = RobotG(g_, u);
 			FindStateJacobian(g_, u);
 		}
-		p_star_.push_back(g_.head(3));  // Save position with no input change
+		p_star_[time_step] = g_.head(3);
 	  MotionVarianceIntegration();  // Update Mtau_
 
-		Eigen::Matrix3f tmp_J = Eigen::Matrix3f::Zero();
 		// Loop over input dimension and calculate numerical Jacobian
     for (int dim = 0; dim < 3; dim++) {  
 			Input up = u;
@@ -134,16 +136,17 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 				gp_[dim] = RobotG(gp_[dim], up);
 				gm_[dim] = RobotG(gm_[dim], um);
 			}
-			tmp_J.col(dim) = (gp_[dim].head(3) - gm_[dim].head(3)) / (2.0*j_step);
+			J_[time_step].col(dim) = (gp_[dim].head(3) - gm_[dim].head(3))
+				/ (2.0f*j_step);
 		}
-		J_.push_back(tmp_J);
 	}
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction() {
-	State x_tilde = x_hat_;
+	//State x_tilde = x_hat_;
 	//x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
-	Linearize(x_tilde, desired_u_ + delta_u_);
+	//Linearize(x_tilde, desired_u_ + delta_u_);
+	Linearize(x_hat_, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
 QuadrotorACA3d::Position QuadrotorACA3d::desired_position(void) {
@@ -189,28 +192,24 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	return potential_colliding_obstacle_indices;
 }  // FindPotentialCollidingPlanes
 
-bool QuadrotorACA3d::CheckForCollision(std::vector<Obstacle3d>& obstacle_list,
+bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 																			 std::vector<int>& index_list) {
 	// First loop over the trajectory, piecewise, and check for collisions
 	int trajectory_index = 1;
 	for (; trajectory_index < static_cast<int>(time_horizon_/dt_);
 			 ++trajectory_index) {
-		// For a single trajectory segment, save the two endpoint positions
-		Eigen::Vector3f current_position = trajectory_position(trajectory_index - 1);
-		Eigen::Vector3f desired_position = trajectory_position(trajectory_index);
-		
 		// Loop over all the possible colliding planes to check for collision
 		// against that single trajectory segment
 		int plane_index = 0;
 		for (; plane_index < index_list.size(); ++plane_index) {
 			// Check the segment for a collisions
-			if (obstacle_list[plane_index].IsIntersecting(current_position,
-																									  desired_position)) {
+			if (obstacle_list[plane_index].IsIntersecting(trajectory_position(trajectory_index - 1),
+																									  trajectory_position(trajectory_index))) {
 				// If one is found, create the halfplane for that collision
 				// and stop checking for collisions
 			  CreateHalfplane(
-					obstacle_list[plane_index].IntersectionPoint(current_position,
-																											 desired_position),
+					obstacle_list[plane_index].IntersectionPoint(trajectory_position(trajectory_index - 1),
+																											 trajectory_position(trajectory_index)),
 					obstacle_list[plane_index].normal());
 				break;
 			}

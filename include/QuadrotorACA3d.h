@@ -78,7 +78,7 @@ private:
 		FindPotentialCollidingPlanes(std::vector<Obstacle3d>& obstacle_list);
 
 	// Check if a collision has occured between the trajectory and an obstacle
-	bool CheckForCollision(std::vector<Obstacle3d>& obstacle_list,
+	bool IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 												 std::vector<int>& index_list);
 
 	// Run the linear programming to calcualte a change in input
