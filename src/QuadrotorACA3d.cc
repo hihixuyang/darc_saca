@@ -48,7 +48,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 10; ++loop_index) {
+	for (int loop_index = 0; loop_index < 30; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -202,13 +202,15 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 		int plane_index = 0;
 		for (; plane_index < index_list.size(); ++plane_index) {
 			// Check the segment for a collisions
-			if (obstacle_list[index_list[plane_index]].IsIntersecting(trajectory_position(trajectory_index - 1),
-																																trajectory_position(trajectory_index))) {
+			if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(
+						trajectory_position(trajectory_index - 1),
+						trajectory_position(trajectory_index))) {
 				// If one is found, create the halfplane for that collision
 				// and stop checking for collisions
 			  CreateHalfplane(
-					obstacle_list[index_list[plane_index]].IntersectionPoint(trajectory_position(trajectory_index - 1),
-																																	 trajectory_position(trajectory_index)),
+					obstacle_list[index_list[plane_index]].NoiseIntersectionPoint(
+						trajectory_position(trajectory_index - 1),
+						trajectory_position(trajectory_index)),
 					obstacle_list[index_list[plane_index]].normal());
 				break;
 			}
@@ -227,30 +229,31 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 
 void QuadrotorACA3d::CalculateDeltaU(void) {
 	float max_speed = 5.0;
-	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
-	Vector3 pref_v(0.0, 0.0, 0.0);
+	Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
+	//Vector3 pref_v(0.0, 0.0, 0.0);
 	Vector3 new_v;
 	size_t plane_fail = linearProgram3(halfplanes_, max_speed,
 																		 pref_v, false, new_v);
 	if (plane_fail < halfplanes_.size())
 		linearProgram4(halfplanes_, plane_fail, max_speed, new_v);
-
+/*
 	std::cout << "Num Planes: " << halfplanes_.size() << std::endl;
 	for (int i = 0; i < halfplanes_.size(); i++) {
 		std::cout << abs(halfplanes_[i].point) << std::endl;
 		std::cout << halfplanes_[i].normal << std::endl;
 	}
 	
-	std::cout << "Before: " << delta_u_.transpose() << std::endl;
-
+	std::cout << "Before: " << (desired_u_ + delta_u_).transpose() << std::endl;
+*/
 	delta_u_[0] += new_v.x();
 	delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
-	//delta_u_ << new_v.x(), new_v.y(), new_v.z();
 	
-	std::cout << "After: " << delta_u_.transpose() << std::endl;
+/*
+	std::cout << "After: " << (desired_u_ + delta_u_).transpose() << std::endl;
 	int k;
 	std::cin >> k;
+*/
 }  // CalculateDeltaU
 
 

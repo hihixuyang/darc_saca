@@ -3,7 +3,7 @@
 void buildObstacles(std::vector<Vertex>& vertices,
 										std::vector<Eigen::Vector3f>& normals, int sim, int scene) {
   double t = 0.12;
-  double r = 0.2;
+  double r = 0.282;
   if (sim) {
     if (scene == 1) {
       // Floor

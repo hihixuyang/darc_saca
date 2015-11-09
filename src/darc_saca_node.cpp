@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 	ros::Publisher quat_pub =
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
-	QuadrotorACA3d quad(1.0);
+	QuadrotorACA3d quad(1.25);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[2] = 1.2;
@@ -71,8 +71,8 @@ int main(int argc, char* argv[]) {
 		Obstacle3d w_4b(v[4].tr - p, v[4].tl - p, v[4].bl - p, n[4], quad.radius());
 		obstacle_list.push_back(w_4b);
 		
-		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 
