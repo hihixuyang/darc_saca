@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 	ros::Publisher quat_pub =
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
-	QuadrotorACA3d quad(0.75);
+	QuadrotorACA3d quad(1.0);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[0] = 1.0;

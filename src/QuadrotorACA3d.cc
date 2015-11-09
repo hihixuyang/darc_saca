@@ -2,8 +2,6 @@
 #include "linear_programming_3d.h"
 #include <stdio.h>
 
-#define RELATIVE_ON
-
 QuadrotorACA3d::QuadrotorACA3d(void) {
 	time_horizon_ = 1.0;
 
@@ -145,13 +143,9 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction() {
-#ifdef RELATIVE_ON
 	State x_tilde = x_hat_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
 	Linearize(x_tilde, desired_u_ + delta_u_);
-#else
-	Linearize(x_hat_, desired_u_ + delta_u_);
-#endif
 }  // ForwardPrediction
 
 QuadrotorACA3d::Position QuadrotorACA3d::desired_position(void) {
@@ -189,13 +183,8 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	std::vector<int> potential_colliding_obstacle_indices;
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
-#ifdef RELATIVE_ON
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
 					&& obstacle_list[obstacle_index].IsTrueSeeable(Position::Zero())) {
-#else
-		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position())) {
-#endif
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 		}
 	}
