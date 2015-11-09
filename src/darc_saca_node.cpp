@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(0.75);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
+	x0[0] = 1.0;
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
@@ -47,10 +48,13 @@ int main(int argc, char* argv[]) {
 	
 	while(ros::ok()) {
 		ros::spinOnce();
+		
 		static std::vector<Obstacle3d> obstacle_list;
+		obstacle_list.clear();
+		
 		Eigen::VectorXf p = Eigen::Vector3f::Zero();
-		//p = quad.true_position();
-
+		p = quad.true_position();
+		
 		Obstacle3d w_0a(v[0].tr - p, v[0].br - p, v[0].bl - p, n[0], quad.radius());
 		obstacle_list.push_back(w_0a);
 		Obstacle3d w_0b(v[0].tr - p, v[0].tl - p, v[0].bl - p, n[0], quad.radius());

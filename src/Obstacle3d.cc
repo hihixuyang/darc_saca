@@ -44,9 +44,7 @@ Eigen::Vector3f Obstacle3d::normal(void) {
 bool Obstacle3d::IsIntersecting(const Eigen::Vector3f& current_position,
 																const Eigen::Vector3f& desired_position) {
 	SolveForIntersection(current_position, desired_position);
-
-	return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1) && (u_ + v_ <= 1) &&
-		((0 <= t_ && t_ <= 1) || (t_ <= 0 &&  (current_position - noise_vertices_[0]).dot(normal_) < 0.0));
+	return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1)	&& (u_ + v_ <= 1) && (0 <= t_ && t_ <= 1);
 }  // IsInterecting
 
 Eigen::Vector3f
@@ -67,14 +65,11 @@ void Obstacle3d::SolveForIntersection(const Eigen::Vector3f& current_position,
 																			const Eigen::Vector3f& desired_position) {
 	Eigen::Matrix3f A;
 	A.col(0) = current_position - desired_position;
-	A.col(1) = noise_vertices_[1] - noise_vertices_[0];
-	A.col(2) = noise_vertices_[2] - noise_vertices_[0];
-	Eigen::Vector3f b = current_position - noise_vertices_[0];
+	A.col(1) = translated_vertices_[1] - translated_vertices_[0];
+	A.col(2) = translated_vertices_[2] - translated_vertices_[0];
+	Eigen::Vector3f b = current_position - translated_vertices_[0];
 	Eigen::Vector3f x = A.fullPivHouseholderQr().solve(b);
-	
-	t_ = x[0];
-	u_ = x[1];
-	v_ = x[2];
+	t_ = x[0]; u_ = x[1]; v_ = x[2];
 }  // SolveForIntersection
 
 	
