@@ -44,6 +44,8 @@ Eigen::Vector3f Obstacle3d::normal(void) {
 bool Obstacle3d::IsIntersecting(const Eigen::Vector3f& current_position,
 																const Eigen::Vector3f& desired_position) {
 	SolveForIntersection(current_position, desired_position);
+	//return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1)	&& (u_ + v_ <= 1) && (
+	//	(0 <= t_ && t_ <= 1) || (t_ <= 0 && (normal_.transpose()*(current_position - true_vertices_[0]) < 0.0)));
 	return (0 <= u_ && u_ <= 1) && (0 <= v_ && v_ <= 1)	&& (u_ + v_ <= 1) && (0 <= t_ && t_ <= 1);
 }  // IsInterecting
 

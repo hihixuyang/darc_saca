@@ -44,6 +44,14 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	float kp3 = 5.0;
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
 	// Control about roll, pitch, yaw rate
+	Input u_sat = u;
+	for (int u_index = 0; u_index < 4; ++u_index) {
+		if (u[u_index] < -1.0) {
+			u_sat[u_index] = -1.0;
+		} else if(u[u_index] > 1.0) {
+			u_sat[u_index] = 1.0;
+		}
+	}
 	tau[0] = kp2*(-max_angle*u[1] - phi) - kd*w[0];
 	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
   tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
