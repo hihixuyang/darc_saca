@@ -67,8 +67,7 @@ protected:
     
   // Solution of state equations for time t
   State RobotG(const State& x, const Input& u) {
-    State m = SampleGaussian(State::Zero(), M_);
-      
+    State m = SampleGaussian(State::Zero(), M_);  
     State k1 = RobotF(x, u) + m;
     State k2 = RobotF(x + 0.5*dt_*k1, u) + m;
     State k3 = RobotF(x + 0.5*dt_*k2, u) + m;
@@ -92,15 +91,16 @@ protected:
 
   // find jacobian of the state with respect to itself
   void FindStateJacobian(const State& x, const Input& u) {
-    double j_step = 0.0009765625;
+    float j_step = 0.0009765625;
     State xP, xM, gP, gM;
     for (int i = 0; i < X_DIM; i++) {
       xP = x; xP[i] += j_step;
       xM = x; xM[i] -= j_step;
       gP = RobotG(xP,u);
       gM = RobotG(xM,u);
-      A_.col(i) = (gP-gM)/(2.0*j_step);
+			A_.col(i) = (gP-gM)/(2.0f*j_step);
     }
+		//std::cout << "FindStateJacobian A" << std::endl << A_ << std::endl;
   }  // FindStateJacobian
 
 	// Set the observation vector

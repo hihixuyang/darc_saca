@@ -16,6 +16,7 @@ public:
 	
   void SetupNoise(void);  // Set the values of Z, M, and initialize Mtau
 	void set_time_horizon(float time_horizon);
+	Eigen::Vector3f sensing_noise(void);
 	void AvoidCollisions(const Input& desired_input,
 											 std::vector<Obstacle3d>& obstacle_list);
 	
@@ -26,7 +27,6 @@ private:
 
 	State g_; // Solved state used for feedforward trajectory estimate
 	std::vector<State> gm_, gp_;  // Solved states with perturbation for Jacobian
-	XXmat A_;  // State jacobian with respect to current input
 	XXmat Mtau_;  // Position uncertainty at time tau
 	Eigen::Matrix3f Z_;  // Obstacle sensing uncertainty
 	

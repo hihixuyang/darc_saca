@@ -37,18 +37,23 @@ void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = Eigen::Matrix3f::Zero();
 	float scale = 1.0;
 	Z_.block<3,3>(0,0) = scale*scale*0.1*0.1*Eigen::Matrix3f::Identity();
+	//Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
 void QuadrotorACA3d::set_time_horizon(float time_horizon) {
 	time_horizon_ = time_horizon;
 }  // set_time_horizon
 
+Eigen::Vector3f QuadrotorACA3d::sensing_noise(void) {
+	return SampleGaussian(Eigen::Vector3f::Zero(), Z_);
+}
+
 void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 																		 std::vector<Obstacle3d>& obstacle_list) {
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 30; ++loop_index) {
+	for (int loop_index = 0; loop_index < 20; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -76,11 +81,20 @@ QuadrotorACA3d::MotionVarianceDerivative(const XXmat& Mtau) {
 }  // MotionVarianceDerivative
 
 void QuadrotorACA3d::MotionVarianceIntegration(void) {
+	//std::cout << "MotionVarianceIntegration Before" << std::endl;
+	//std::cout << "A" << std::endl << A_ << std::endl << std::endl;
+	//std::cout << "Mtau" << std::endl << Mtau_ << std::endl << std::endl;
+	//std::cout << "M" << std::endl << M_ << std::endl << std::endl;
+	//int k;
+	//std::cin >> k;
 	XXmat M1 = MotionVarianceDerivative(Mtau_);
 	XXmat M2 = MotionVarianceDerivative(Mtau_ + 0.5*dt_*M1);
 	XXmat M3 = MotionVarianceDerivative(Mtau_ + 0.5*dt_*M2);
 	XXmat M4 = MotionVarianceDerivative(Mtau_ + dt_*M3);
 	Mtau_ =  Mtau_ + (dt_/6.0)*(M1 + 2.0*M2 + 2.0*M3 + M4);
+	//std::cout << "MotionVarianceIntegration After" << std::endl;
+	//std::cout << "Mtau_" << std::endl << Mtau_ << std::endl;
+	//std::cin >> k;
 }  // MotionVarianceIntegration
 
 float QuadrotorACA3d::VarianceProjection(const Eigen::Matrix3f& A,
@@ -93,6 +107,10 @@ float QuadrotorACA3d::VarianceProjection(const Eigen::Matrix3f& A,
 
 QuadrotorACA3d::Position
 QuadrotorACA3d::PositionUncertaintyProjection(const Position& normal) {
+	//std::cout << "PositionUncertaintyProjection" << std::endl;
+	//std::cout << "Mtau_" << std::endl << Mtau_ << std::endl;
+	//int k;
+	//std::cin >> k;
   return normal*VarianceProjection(Mtau_.block(0,0,3,3), normal);
 }  // PositionUncertaintyProjection
 
@@ -109,7 +127,8 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 	float j_step = 0.0009765625;
 	p_star_[0] = x.head(3);
 	Mtau_ = XXmat::Zero();
-
+	//std::cout << "Linearize Before" << std::endl;
+	//std::cout << Mtau_ << std::endl;
 	// Loop over all timesteps
 	for (size_t time_step = 1; time_step < static_cast<size_t>(time_horizon_/dt_);
 			 time_step++) {
@@ -122,7 +141,10 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 		}
 		p_star_[time_step] = g_.head(3);
 	  MotionVarianceIntegration();  // Update Mtau_
-
+		//std::cout << "Integration" << std::endl;
+		//std::cout << Mtau_ << std::endl;
+		//int k;
+		//std::cin >> k;
 		// Loop over input dimension and calculate numerical Jacobian
     for (int dim = 0; dim < 3; dim++) {  
 			Input up = u;
@@ -140,6 +162,10 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 				/ (2.0f*j_step);
 		}
 	}
+	//std::cout << "Linearize After" << std::endl;
+	//std::cout << Mtau_ << std::endl;
+	//int k;
+	//std::cin >> k;
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction() {
@@ -158,10 +184,15 @@ QuadrotorACA3d::Position QuadrotorACA3d::trajectory_position(size_t time_step) {
 
 void QuadrotorACA3d::CreateHalfplane(const Eigen::VectorXf& pos_colliding,
 																		 const Eigen::VectorXf& normal) {
+	//std::cout << "P: " << PositionUncertaintyProjection(normal).transpose() << std::endl;
+	//std::cout << "S: " << SensingUncertaintyProjection(normal).transpose() << std::endl;
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = (normal.transpose() * (pos_colliding - desired_position()) + 0.0002)
-	  / a.norm();
+	float b = static_cast<float>((normal.transpose() *
+						 										(pos_colliding - desired_position() +
+																 PositionUncertaintyProjection(normal) +
+																 SensingUncertaintyProjection(normal)))
+																+ 0.0002f) / a.norm();
 	a.normalize();
 	Plane tmp_plane;
   tmp_plane.point.x(b*a[0]);
@@ -208,7 +239,7 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 				// If one is found, create the halfplane for that collision
 				// and stop checking for collisions
 			  CreateHalfplane(
-					obstacle_list[index_list[plane_index]].NoiseIntersectionPoint(
+					obstacle_list[index_list[plane_index]].TranslatedIntersectionPoint(
 						trajectory_position(trajectory_index - 1),
 						trajectory_position(trajectory_index)),
 					obstacle_list[index_list[plane_index]].normal());
@@ -229,31 +260,17 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 
 void QuadrotorACA3d::CalculateDeltaU(void) {
 	float max_speed = 5.0;
-	Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
-	//Vector3 pref_v(0.0, 0.0, 0.0);
+	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
+	Vector3 pref_v(0.0, 0.0, 0.0);
 	Vector3 new_v;
 	size_t plane_fail = linearProgram3(halfplanes_, max_speed,
 																		 pref_v, false, new_v);
 	if (plane_fail < halfplanes_.size())
 		linearProgram4(halfplanes_, plane_fail, max_speed, new_v);
-/*
-	std::cout << "Num Planes: " << halfplanes_.size() << std::endl;
-	for (int i = 0; i < halfplanes_.size(); i++) {
-		std::cout << abs(halfplanes_[i].point) << std::endl;
-		std::cout << halfplanes_[i].normal << std::endl;
-	}
-	
-	std::cout << "Before: " << (desired_u_ + delta_u_).transpose() << std::endl;
-*/
+
 	delta_u_[0] += new_v.x();
 	delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
-	
-/*
-	std::cout << "After: " << (desired_u_ + delta_u_).transpose() << std::endl;
-	int k;
-	std::cin >> k;
-*/
 }  // CalculateDeltaU
 
 

@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 	ros::Publisher quat_pub =
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
-	QuadrotorACA3d quad(1.25);
+	QuadrotorACA3d quad(1.0);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
 	x0[2] = 1.2;
@@ -43,36 +43,28 @@ int main(int argc, char* argv[]) {
 	std::vector<Eigen::Vector3f> n(9);
 	buildObstacles(v, n, 1, 1);
 
+	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
 	
 	while(ros::ok()) {
 		ros::spinOnce();
 		std::vector<Obstacle3d> obstacle_list;
 		Eigen::VectorXf p = quad.true_position();
+
+		for (int i = 0; i < 5; ++i) {
+			Eigen::Vector3f noise = quad.sensing_noise();
+			Eigen::Vector3f tr = v[i].tr -p + quad.sensing_noise();
+			Eigen::Vector3f br = v[i].br -p + quad.sensing_noise();
+			Eigen::Vector3f tl = v[i].tl -p + quad.sensing_noise();
+			Eigen::Vector3f bl = v[i].bl -p + quad.sensing_noise();
+			Obstacle3d w_a(tr, br, bl, n[i], quad.radius());
+			Obstacle3d w_b(tr, tl, bl, n[i], quad.radius());
+			obstacle_list.push_back(w_a);
+			obstacle_list.push_back(w_b);
+		}
 		
-		Obstacle3d w_0a(v[0].tr - p, v[0].br - p, v[0].bl - p, n[0], quad.radius());
-		obstacle_list.push_back(w_0a);
-		Obstacle3d w_0b(v[0].tr - p, v[0].tl - p, v[0].bl - p, n[0], quad.radius());
-		obstacle_list.push_back(w_0b);
-		Obstacle3d w_1a(v[1].tr - p, v[1].br - p, v[1].bl - p, n[1], quad.radius());
-		obstacle_list.push_back(w_1a);
-		Obstacle3d w_1b(v[1].tr - p, v[1].tl - p, v[1].bl - p, n[1], quad.radius());
-		obstacle_list.push_back(w_1b);
-		Obstacle3d w_2a(v[2].tr - p, v[2].br - p, v[2].bl - p, n[2], quad.radius());
-		obstacle_list.push_back(w_2a);
-		Obstacle3d w_2b(v[2].tr - p, v[2].tl - p, v[2].bl - p, n[2], quad.radius());
-		obstacle_list.push_back(w_2b);
-		Obstacle3d w_3a(v[3].tr - p, v[3].br - p, v[3].bl - p, n[3], quad.radius());
-		obstacle_list.push_back(w_3a);
-		Obstacle3d w_3b(v[3].tr - p, v[3].tl - p, v[3].bl - p, n[3], quad.radius());
-		obstacle_list.push_back(w_3b);
-		Obstacle3d w_4a(v[4].tr - p, v[4].br - p, v[4].bl - p, n[4], quad.radius());
-		obstacle_list.push_back(w_4a);
-		Obstacle3d w_4b(v[4].tr - p, v[4].tl - p, v[4].bl - p, n[4], quad.radius());
-		obstacle_list.push_back(w_4b);
-		
-		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
+		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 

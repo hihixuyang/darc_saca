@@ -78,18 +78,17 @@ void QuadrotorBase::Setup(void) {
 	x_hat_ = State::Zero();
 	// True process noise (Does not have to be same as Kalman Q)
 	M_ = XXmat::Zero();
-	/*
   M_.block<3,3>(0,0) = 0.025*0.025*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(3,3) = 0.05*0.05*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(6,6) = 0.025*0.025*Eigen::Matrix3f::Identity();
 	M_.block<3,3>(9,9) = 0.05*0.05*Eigen::Matrix3f::Identity();
-	*/
+	//M_ = XXmat::Zero();
+	
 	// True observation noise (Does not have to be same as Kalman R)
 	N_ = ZZmat::Zero();
-	/*
 	N_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
 	N_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
-	*/
+	//N_ = ZZmat::Zero();
 	
 	// Kalman process noise
   Q_ = XXmat::Zero();
