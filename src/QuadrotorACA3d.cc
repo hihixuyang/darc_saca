@@ -36,7 +36,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = Eigen::Matrix3f::Zero();
 	float scale = 1.0;
-	Z_.block<3,3>(0,0) = scale*scale*0.1*0.1*Eigen::Matrix3f::Identity();
+	Z_.block<3,3>(0,0) = scale*scale*0.01*0.01*Eigen::Matrix3f::Identity();
 	//Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
@@ -99,7 +99,10 @@ void QuadrotorACA3d::MotionVarianceIntegration(void) {
 
 float QuadrotorACA3d::VarianceProjection(const Eigen::Matrix3f& A,
 																				 const Position& b) {
-  float c = 3.841;
+  //float c = 3.841;  // 95%
+	//float c = 5.024;  // 97.5%
+	//float c = 6.635;  // 99%
+	float c = 7.879;  // 99.5%
 	Eigen::LLT<Eigen::MatrixXf> lltOfA(A);
 	Eigen::MatrixXf L = lltOfA.matrixL();
 	return c*b.transpose()*L*b;

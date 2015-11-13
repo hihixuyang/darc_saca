@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
 
 	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
+
+	float radius = quad.radius();
 	
 	while(ros::ok()) {
 		ros::spinOnce();
@@ -57,14 +59,14 @@ int main(int argc, char* argv[]) {
 			Eigen::Vector3f br = v[i].br -p + quad.sensing_noise();
 			Eigen::Vector3f tl = v[i].tl -p + quad.sensing_noise();
 			Eigen::Vector3f bl = v[i].bl -p + quad.sensing_noise();
-			Obstacle3d w_a(tr, br, bl, n[i], quad.radius());
-			Obstacle3d w_b(tr, tl, bl, n[i], quad.radius());
+			Eigen::Vector3f normal = (tr - br).cross(bl - br);
+			Obstacle3d w_a(tr, br, bl, normal, radius);
+			Obstacle3d w_b(tr, tl, bl, normal, radius);
 			obstacle_list.push_back(w_a);
 			obstacle_list.push_back(w_b);
 		}
 		
-		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		quad.AvoidCollisions(u_curr, obstacle_list);
 		quad.ApplyInput();
 
