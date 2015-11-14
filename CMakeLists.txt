@@ -131,15 +131,21 @@ include_directories(
 # add_dependencies(darc_saca ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
- add_executable(darc_saca_node src/darc_saca_node.cpp
+ add_executable(darc_saca_node 
+   # 3D and 2D
 	 src/uncertainty_sampling.cc
-	 src/linear_programming_3d.cc
 	 src/wallVertices.cpp
-	 src/Obstacle3d.cc
    src/QuadrotorBase.cc
+	 # 3D
+	 src/linear_programming_3d.cc
+	 src/Obstacle3d.cc
 	 src/QuadrotorACA3d.cc
-
-
+   src/darc_3dsaca_node.cpp
+	 # 2D
+	 #src/darc_2dsaca_node.cpp
+	 src/linear_programming_2d.cc
+	 src/Obstacle2d.cc
+	 src/QuadrotorACA2d.cc
 )
 
 ## Add cmake target dependencies of the executable

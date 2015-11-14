@@ -20,17 +20,17 @@ public:
 };
 
 bool linearProgram1(const std::vector<Plane>& planes,	size_t planeNo,	Line& line,
-										float radius,	const Vector3& optVelocity,	bool directionOpt,
-										Vector3& result);
+													 float radius,	const Vector3& optVelocity,	bool directionOpt,
+													 Vector3& result);
 
 bool linearProgram2(const std::vector<Plane>& planes,	size_t planeNo,
-										float radius,	const Vector3& optVelocity,	bool directionOpt,
-										Vector3& result);
+													 float radius,	const Vector3& optVelocity,	bool directionOpt,
+													 Vector3& result);
 
 size_t linearProgram3(const std::vector<Plane>& planes,	double radius,
-											const Vector3& optVelocity,	bool directionOpt,
-											Vector3& result);
+														 const Vector3& optVelocity,	bool directionOpt,
+														 Vector3& result);
 
 void linearProgram4(const std::vector<Plane>& planes,	size_t beginPlane,
-										float radius,	Vector3& result);
+													 float radius,	Vector3& result);
 #endif

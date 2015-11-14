@@ -3,6 +3,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Quaternion.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/LaserScan.h>
 #include <std_msgs/Float32.h>
 #include <Eigen/Dense>
 
@@ -20,6 +21,13 @@ void yaw_callback(const std_msgs::Float32& yaw_in) {
 	yaw_input = yaw_in.data;
 }
 
+std::vector<float> scan_data(360);
+void laser_callback(const sensor_msgs::LaserScan& laser_in) {
+	for (int data_index = 0; data_index < 360; ++data_index) {
+		scan_data[data_index] = laser_in.ranges[data_index];
+	}
+}
+
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_node");
 	ros::NodeHandle nh;
@@ -27,7 +35,8 @@ int main(int argc, char* argv[]) {
 
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, u_callback);
 	ros::Subscriber yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
-
+	ros::Subscriber laser_scan = nh.subscribe("laser_scan",1,laser_callback);
+	
 	ros::Publisher pos_pub =
 		nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
 	ros::Publisher quat_pub =

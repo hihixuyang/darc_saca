@@ -8,7 +8,8 @@
 class QuadrotorBase : public Robot<12,4,6,3> {
 
 public:
-	typedef Eigen::Matrix<float, 3, 1> Position;	
+	typedef Eigen::Matrix<float, 3, 1> Position;
+
   void Setup(void);
  
 	Position true_position(void);

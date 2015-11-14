@@ -55,5 +55,4 @@ private:
 	void SolveForNoiseIntersection(const Eigen::Vector3f& current_position,
 																 const Eigen::Vector3f& desired_position);
 };
-
 #endif

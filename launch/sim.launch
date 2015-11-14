@@ -1,5 +1,6 @@
 <launch>
   <node pkg="joy" type="joy_node" name="XboxController" args="/dev/input/js0" respawn="true" />
+  <node pkg="vrep_lidar" type="vrep_lidar_node" name="LidarDriver" respawn="true"/>
   <node pkg="darc_ardrone" type="flyfromjoy" name="InputMapping" respawn="true" />
   <node pkg="darc_saca" type="darc_saca_node" name="SACA" respawn="true" output="screen"/>
 </launch>
