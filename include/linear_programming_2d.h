@@ -9,6 +9,7 @@ static const float RVO_EPSILON = 0.00001f;
 
 // Line struct for 2-D half-planes
 struct Line {
+public:
 	Vector2 point;//@brief		A point on the directed line.
 	Vector2 direction;//@brief		The direction of the directed line.
 };
