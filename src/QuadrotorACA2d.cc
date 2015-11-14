@@ -227,7 +227,6 @@ bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list,
 
 void QuadrotorACA2d::CalculateDeltaU(void) {
 	float max_speed = 5.0;
-	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
 	Vector2 pref_v(0.0, 0.0);
 	Vector2 new_v;
 	
