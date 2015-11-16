@@ -1,4 +1,5 @@
 #include "Obstacle2d.h"
+#include <iostream>
 
 Obstacle2d::Obstacle2d(void) {
 	true_intersection_calculated_ = translated_intersection_calculated_ =
@@ -45,7 +46,8 @@ bool Obstacle2d::IsTrueIntersecting(const Eigen::Vector2f& current_position,
 																	 const Eigen::Vector2f& desired_position) {
 	SolveForTrueIntersection(current_position, desired_position);
 	if ((true_c_ != 0) && (true_a_ == true_b_ && true_a_ != 0)) {
-		return (0 <= true_a_/true_c_ <= 1) && (0 <= true_b_/true_c_ <= 1);
+		return (0 <= true_a_/true_c_ <= 1) ||
+			(true_a_/true_c_ <= 0 && normal_.transpose()*(current_position - true_vertices_[0]) < 0.0);
 	}
 	return false;
 }  // IsTrueItersecting
@@ -53,10 +55,11 @@ bool Obstacle2d::IsTrueIntersecting(const Eigen::Vector2f& current_position,
 bool Obstacle2d::IsTranslatedIntersecting(const Eigen::Vector2f& current_position,
 																					const Eigen::Vector2f& desired_position) {
 	SolveForTranslatedIntersection(current_position, desired_position);
-	if ((translated_c_ != 0) &&
-			(translated_a_ == translated_b_ && translated_a_ != 0)) {
-		return (0 <= translated_a_/translated_c_ <= 1) &&
-			(0 <= translated_b_/translated_c_ <= 1);
+	if (!(translated_c_ == 0) && !(translated_a_ == translated_b_ && translated_a_ == 0)) {
+		float a = translated_a_/translated_c_;
+		float b = translated_b_/translated_c_;
+		return (0 <= a && a <= 1) ||
+			(translated_a_/translated_c_ <= 0 && normal_.transpose()*(current_position - translated_vertices_[0]) < 0.0);
 	}
 	return false;
 }  // IsTranslatedIntersecting
@@ -65,7 +68,8 @@ bool Obstacle2d::IsNoiseIntersecting(const Eigen::Vector2f& current_position,
 																		 const Eigen::Vector2f& desired_position) {
 	SolveForNoiseIntersection(current_position, desired_position);
 	if ((noise_c_ != 0) && (noise_a_ == noise_b_ && noise_a_ != 0)) {
-		return (0 <= noise_a_/noise_c_ <= 1) && (0 <= noise_b_/noise_c_ <= 1);
+		return (0 <= noise_a_/noise_c_ <= 1) ||
+			(noise_a_/noise_c_ <= 0 && normal_.transpose()*(current_position - translated_vertices_[0]) < 0.0);
 	}
 	return false;
 }  // IsNoiseIntersecting
@@ -74,6 +78,7 @@ Eigen::Vector2f Obstacle2d::TrueIntersectionPoint(const Eigen::Vector2f& current
 																									const Eigen::Vector2f& desired_position) {
 	if (!true_intersection_calculated_)
 		SolveForTrueIntersection(current_position, desired_position);
+	
 	return current_position*(1.0 - true_a_/true_c_) +
 		desired_position*(true_a_/true_c_);
 }  // TrueIntersectionPoint
@@ -82,6 +87,7 @@ Eigen::Vector2f Obstacle2d::TranslatedIntersectionPoint(const Eigen::Vector2f& c
 																												const Eigen::Vector2f& desired_position) {
 	if (!translated_intersection_calculated_)
 		SolveForTranslatedIntersection(current_position, desired_position);
+	
 	return current_position*(1.0 - translated_a_/translated_c_) +
 	desired_position*(translated_a_/translated_c_);
 }  // TranslatedIntersectionPoint
@@ -90,6 +96,7 @@ Eigen::Vector2f Obstacle2d::NoiseIntersectionPoint(const Eigen::Vector2f& curren
 																									 const Eigen::Vector2f& desired_position) {
 	if (!noise_intersection_calculated_)
 		SolveForNoiseIntersection(current_position, desired_position);
+	
 	return current_position*(1.0 - noise_a_/noise_b_) +
 		desired_position*(noise_a_/noise_b_);
 }  // NoiseIntersectionPoint
@@ -129,7 +136,8 @@ void Obstacle2d::SolveForTranslatedIntersection(const Eigen::Vector2f& current_p
 	float x2 = desired_position[0]; float y2 = desired_position[1];
 	float x3 = translated_vertices_[0][0]; float y3 = translated_vertices_[0][1];
 	float x4 = translated_vertices_[1][0]; float y4 = translated_vertices_[1][1];
-	translated_a_ = (x4 - x3) * (y1 - y3) - (x4 - x3) * (x1 - x3);
+
+	translated_a_ = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
 	translated_b_ = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
 	translated_c_ = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
 

@@ -1,5 +1,5 @@
 #include "QuadrotorACA3d.h"
-#include "linear_programming_3d.h"
+//#include "linear_programming_3d.h"
 #include <stdio.h>
 
 QuadrotorACA3d::QuadrotorACA3d(void) {

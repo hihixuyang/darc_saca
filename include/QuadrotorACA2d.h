@@ -82,4 +82,5 @@ private:
 
 	// Run the linear programming to calcualte a change in input
 	void CalculateDeltaU(void);
+};
 #endif

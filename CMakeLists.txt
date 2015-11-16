@@ -131,21 +131,28 @@ include_directories(
 # add_dependencies(darc_saca ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
- add_executable(darc_saca_node 
-   # 3D and 2D
-	 src/uncertainty_sampling.cc
-	 src/wallVertices.cpp
-   src/QuadrotorBase.cc
-	 # 3D
-	 src/linear_programming_3d.cc
-	 src/Obstacle3d.cc
-	 src/QuadrotorACA3d.cc
-   src/darc_3dsaca_node.cpp
-	 # 2D
-	 #src/darc_2dsaca_node.cpp
-	 src/linear_programming_2d.cc
-	 src/Obstacle2d.cc
-	 src/QuadrotorACA2d.cc
+add_executable(darc_3dsaca_node 
+  # 3D and 2D
+	src/uncertainty_sampling.cc
+	src/wallVertices.cpp
+  src/QuadrotorBase.cc
+	# 3D
+	src/linear_programming_3d.cc
+	src/Obstacle3d.cc
+	src/QuadrotorACA3d.cc
+	src/darc_3dsaca_node.cpp
+)
+
+add_executable(darc_2dsaca_node
+	#3D and 2d
+	src/uncertainty_sampling.cc
+	src/wallVertices.cpp
+	src/QuadrotorBase.cc
+	# 2D
+	src/linear_programming_2d.cc
+	src/Obstacle2d.cc
+	src/QuadrotorACA2d.cc
+	src/darc_2dsaca_node.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -153,9 +160,8 @@ include_directories(
 # add_dependencies(darc_saca_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(darc_saca_node
-   ${catkin_LIBRARIES}
- )
+target_link_libraries(darc_3dsaca_node ${catkin_LIBRARIES})
+target_link_libraries(darc_2dsaca_node  ${catkin_LIBRARIES})
 
 #############
 ## Install ##

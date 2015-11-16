@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 
 // From ORCA2D
-inline bool linearProgram1(const std::vector<Line> &lines, size_t lineNo,
+bool linearProgram1(const std::vector<Line> &lines, size_t lineNo,
 										float radius, const Vector2 &optVelocity,
 										bool directionOpt, Vector2 &result) {
   const float dotProduct = lines[lineNo].point * lines[lineNo].direction;
@@ -71,7 +71,7 @@ inline bool linearProgram1(const std::vector<Line> &lines, size_t lineNo,
 }
 
 // From ORCA2D
-inline size_t linearProgram2(const std::vector<Line> &lines, float radius,
+size_t linearProgram2(const std::vector<Line> &lines, float radius,
 											const Vector2 &optVelocity, bool directionOpt,
 											Vector2 &result) {
 	if (directionOpt) {
@@ -102,7 +102,7 @@ inline size_t linearProgram2(const std::vector<Line> &lines, float radius,
 }
 
 // From ORCA2D - Used when others fail
-inline void linearProgram3(const std::vector<Line> &lines, size_t numObstLines,
+void linearProgram3(const std::vector<Line> &lines, size_t numObstLines,
  									  size_t beginLine, float radius, Vector2 &result) {
 	float distance = 0.0f;
 

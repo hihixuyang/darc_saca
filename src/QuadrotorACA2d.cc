@@ -1,5 +1,5 @@
 #include "QuadrotorACA2d.h"
-#include "linear_programming_2d.h"
+//#include "linear_programming_2d.h"
 #include <stdio.h>
 
 QuadrotorACA2d::QuadrotorACA2d(void) {
@@ -33,7 +33,7 @@ void QuadrotorACA2d::SetupNoise(void) {
 	Z_ = Eigen::Matrix2f::Zero();
 }  // SetupNoise
 
-void QuadrotorACA2dd::set_time_horizon(float time_horizon) {
+void QuadrotorACA2d::set_time_horizon(float time_horizon) {
 	time_horizon_ = time_horizon;
 }  // set_time_horizon
 
@@ -46,7 +46,7 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 20; ++loop_index) {
+	for (int loop_index = 0; loop_index < 30; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -72,7 +72,7 @@ QuadrotorACA2d::XXmat QuadrotorACA2d::MotionVarianceDerivative(const XXmat& Mtau
 	return A_*Mtau + Mtau*A_.transpose() + M_;
 }  // MotionVarianceDerivative
 
-void QuadrotorACA2d::MotonVarianceIntegration(void) {
+void QuadrotorACA2d::MotionVarianceIntegration(void) {
 	XXmat M1 = MotionVarianceDerivative(Mtau_);
 	XXmat M2 = MotionVarianceDerivative(Mtau_ + 0.5*dt_*M1);
 	XXmat M3 = MotionVarianceDerivative(Mtau_ + 0.5*dt_*M2);
@@ -142,7 +142,7 @@ void QuadrotorACA2d::Linearize(const State& x, const Input& u) {
 
 void QuadrotorACA2d::ForwardPrediction(void) {
 	State x_tilde = x_hat_;
-	x_tilde.head(2) = Eigen::Vector2f::Zero(); // For relative obstacle definition
+	//x_tilde.head(2) = Eigen::Vector2f::Zero(); // For relative obstacle definition
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -182,10 +182,11 @@ std::vector<int> QuadrotorACA2d::FindPotentialCollidingPlanes(
 	for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			 ++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(Eigen::Vector2f::Zero())) {
+				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position().head(2))) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 		}
 	}
+
 	return potential_colliding_obstacle_indices;
 }  // FindPotentialCollidingPlanes
 
@@ -230,10 +231,10 @@ void QuadrotorACA2d::CalculateDeltaU(void) {
 	Vector2 pref_v(0.0, 0.0);
 	Vector2 new_v;
 	
-	size_t plane_fail = linearProgram2(halfplanes_, max_speed,
-																		 pref_v, false, new_v);
-	if (plane_fail < halfplanes_.size())
-		linearProgram3(halfplanes_, plane_fail, max_speed, new_v);
+	size_t line_fail = linearProgram2(halfplanes_, max_speed,
+																	  pref_v, false, new_v);
+	if (line_fail < halfplanes_.size())
+		linearProgram3(halfplanes_, 0, line_fail, max_speed, new_v);
 
 	delta_u_[0] += new_v.x();
 	delta_u_[1] += new_v.y();
