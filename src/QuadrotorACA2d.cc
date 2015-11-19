@@ -29,7 +29,7 @@ QuadrotorACA2d::QuadrotorACA2d(float time_horizon) {
 }  // QuadrotorACA2d
 
 void QuadrotorACA2d::SetupNoise(void) {
-	Z_ = 0.0075*0.0075*Eigen::Matrix2f::Identity();
+	Z_ = 0.01*0.01*Eigen::Matrix2f::Identity();
 	//Z_ = Eigen::Matrix2f::Zero();
 }  // SetupNoise
 
@@ -46,7 +46,7 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 30; ++loop_index) {
+	for (int loop_index = 0; loop_index < 6; ++loop_index) {
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -160,7 +160,7 @@ void QuadrotorACA2d::CreateHalfplane(const Eigen::Vector2f& pos_colliding,
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
 																(pos_colliding - desired_position() +
-																 sigma(normal)*normal)) + 0.002f) / a.norm();
+																 sigma(normal)*normal)) + 0.0002f) / a.norm();
 	a.normalize();
 	
 	Line tmp_line;
