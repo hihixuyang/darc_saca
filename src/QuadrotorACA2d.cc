@@ -30,7 +30,7 @@ QuadrotorACA2d::QuadrotorACA2d(float time_horizon) {
 
 void QuadrotorACA2d::SetupNoise(void) {
 	Z_ = 0.0075*0.0075*Eigen::Matrix2f::Identity();
-	Z_ = Eigen::Matrix2f::Zero();
+	//Z_ = Eigen::Matrix2f::Zero();
 }  // SetupNoise
 
 void QuadrotorACA2d::set_time_horizon(float time_horizon) {
@@ -142,7 +142,7 @@ void QuadrotorACA2d::Linearize(const State& x, const Input& u) {
 
 void QuadrotorACA2d::ForwardPrediction(void) {
 	State x_tilde = x_hat_;
-	//x_tilde.head(2) = Eigen::Vector2f::Zero(); // For relative obstacle definition
+	x_tilde.head(2) = Eigen::Vector2f::Zero(); // For relative obstacle definition
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -160,7 +160,7 @@ void QuadrotorACA2d::CreateHalfplane(const Eigen::Vector2f& pos_colliding,
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
 																(pos_colliding - desired_position() +
-																 sigma(normal)*normal)) + 0.0002f) / a.norm();
+																 sigma(normal)*normal)) + 0.002f) / a.norm();
 	a.normalize();
 	
 	Line tmp_line;
@@ -182,7 +182,7 @@ std::vector<int> QuadrotorACA2d::FindPotentialCollidingPlanes(
 	for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			 ++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(est_position().head(2))) {
+				&& obstacle_list[obstacle_index].IsTrueSeeable(Eigen::Vector2f::Zero())) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 		}
 	}

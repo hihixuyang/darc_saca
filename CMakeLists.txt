@@ -151,6 +151,7 @@ add_executable(darc_2dsaca_node
 	# 2D
 	src/linear_programming_2d.cc
 	src/Obstacle2d.cc
+	src/LidarSegment.cc
 	src/QuadrotorACA2d.cc
 	src/darc_2dsaca_node.cpp
 )
