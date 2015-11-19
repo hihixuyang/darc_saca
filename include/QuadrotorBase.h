@@ -21,6 +21,9 @@ public:
 	float true_speed(void);
 	float est_speed(void);
 
+	float true_yaw(void);
+	float est_yaw(void);
+	
 protected:
 	State RobotF(const State& x0, const Input& u0);
 	void set_z(void);

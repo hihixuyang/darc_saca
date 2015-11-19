@@ -48,6 +48,9 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 	bool found_collision;
 	for (int loop_index = 0; loop_index < 6; ++loop_index) {
 		ForwardPrediction();
+		if (loop_index == 0) {
+			p_star_initial_ = p_star_;
+		}
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -59,6 +62,14 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 	}
 	u_ = desired_u_ + delta_u_;
 }  // AvoidCollisions
+
+std::vector<Eigen::Vector2f> QuadrotorACA2d::InitialDesiredTrajectory(void) {
+	return p_star_initial_;
+}
+
+std::vector<Eigen::Vector2f> QuadrotorACA2d::FinalDesiredTrajectory(void) {
+	return p_star_;
+}
 
 void QuadrotorACA2d::set_desired_u(const Input& desired_u) {
 	desired_u_ = desired_u;

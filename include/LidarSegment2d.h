@@ -1,15 +1,15 @@
-#ifndef LIDAR_SEGMENT_H_
-#define LIDAR_SEGMENT_H_
+#ifndef LIDAR_SEGMENT_2D_H_
+#define LIDAR_SEGMENT_2D_H_
 
 #include <vector>
 #include <Eigen/Dense>
 
-class LidarSegment {
+class LidarSegment2d {
 public:
-	LidarSegment(void);
-	LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
+	LidarSegment2d(void);
+	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 							 const std::vector<float>& range_data);
-	LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
+	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 							 const std::vector<float>& range_data,
 							 float threshold);	
 

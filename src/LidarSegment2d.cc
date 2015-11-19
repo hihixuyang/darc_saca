@@ -1,14 +1,14 @@
-#include "LidarSegment.h"
+#include "LidarSegment2d.h"
 #include <iostream>
 
 // Default Constructor
-LidarSegment::LidarSegment(void) {
+LidarSegment2d::LidarSegment2d(void) {
 	distance_threshold_ = 0.05;
 	radius_threshold_ = 0.5;
-}  // LidarSegment
+}  // LidarSegment2d
 
 // Custom constructor
-LidarSegment::LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
+LidarSegment2d::LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 													 const std::vector<float>& range_data) {
 	distance_threshold_ = 0.05;
 	radius_threshold_ = 0.5;
@@ -18,10 +18,10 @@ LidarSegment::LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
 		full_points_[point_index] = point_list[point_index];
 		range_data_[point_index] = range_data[point_index];
 	}
-}  // LidarSegment
+}  // LidarSegment2d
 
 // Custom constructor
-LidarSegment::LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
+LidarSegment2d::LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 													 const std::vector<float>& range_data,
 													 float thresh) {
 	distance_threshold_ = thresh;
@@ -32,10 +32,10 @@ LidarSegment::LidarSegment(const std::vector<Eigen::Vector2f>& point_list,
 		full_points_[point_index] = point_list[point_index];
 		range_data_[point_index] = range_data[point_index];
 	}
-}  // LidarSegment
+}  // LidarSegment2d
 
 // Calculate then return the list of segmented points
-std::vector<Eigen::Vector2f> LidarSegment::segmented_points(void) {
+std::vector<Eigen::Vector2f> LidarSegment2d::segmented_points(void) {
 	// Pre-process points to do clustering
 	if (full_points_.size() > 0) {
 		std::vector<int> low_segment(full_points_.size());
@@ -147,7 +147,7 @@ std::vector<Eigen::Vector2f> LidarSegment::segmented_points(void) {
 } // segmented_points
 
 // Perform an initial clustering from radius criterion
-void LidarSegment::PerformClustering(std::vector< std::vector<int> >& segments) {
+void LidarSegment2d::PerformClustering(std::vector< std::vector<int> >& segments) {
 	for (int segment_index = 0; segment_index < segments.size(); ++segment_index) {
 		if (segments[segment_index].size() > 2) {  // skip groups of 2
 			for (int point_index = 1; point_index < segments[segment_index].size();
@@ -166,7 +166,7 @@ void LidarSegment::PerformClustering(std::vector< std::vector<int> >& segments) 
 }  // PerformClustering
 
 // Perform computation of segmentation into lines
-void LidarSegment::PerformSplitAndMerge(std::vector<std::vector<int> >& segments,
+void LidarSegment2d::PerformSplitAndMerge(std::vector<std::vector<int> >& segments,
 																				int& segment_index) {
  	for (; segment_index < segments.size(); ++segment_index) {
 		if (segments[segment_index].size() > 2) {  // line is already finished
@@ -187,7 +187,7 @@ void LidarSegment::PerformSplitAndMerge(std::vector<std::vector<int> >& segments
 
 // Split a line segment at the furthest point
 std::vector< std::vector<int> >
-LidarSegment::SplitAtFurthestPoint(const std::vector<int>& segment) {
+LidarSegment2d::SplitAtFurthestPoint(const std::vector<int>& segment) {
 	Point break_point = PointFarthestFromLine(segment);
 	std::vector< std::vector<int> >segments(2);
 	if (break_point.distance_ > distance_threshold_) {
@@ -204,7 +204,7 @@ LidarSegment::SplitAtFurthestPoint(const std::vector<int>& segment) {
 
 // Split a line segment at a given index
 std::vector< std::vector<int> >
-LidarSegment::SplitSegment(const std::vector<int>& segment, int split_index) {
+LidarSegment2d::SplitSegment(const std::vector<int>& segment, int split_index) {
 	std::vector<int> low_segment(split_index + 1);
 	for (int low_index = 0; low_index < split_index + 1; ++low_index) {
 		low_segment[low_index] = segment[low_index];
@@ -219,8 +219,8 @@ LidarSegment::SplitSegment(const std::vector<int>& segment, int split_index) {
 	return segments;
 }  // SplitSegment
 							 
-LidarSegment::Point
-LidarSegment::PointFarthestFromLine(const std::vector<int>& point_list) {
+LidarSegment2d::Point
+LidarSegment2d::PointFarthestFromLine(const std::vector<int>& point_list) {
 	float max_distance = FindDistance(full_points_[point_list.front()],
 																		full_points_[point_list.back()],
 																		full_points_[point_list[1]]);
@@ -242,7 +242,7 @@ LidarSegment::PointFarthestFromLine(const std::vector<int>& point_list) {
 
 // Find a the distance between point C and its projection onto the segment
 // between points a and b
-float LidarSegment::FindDistance(const Eigen::Vector2f& a,
+float LidarSegment2d::FindDistance(const Eigen::Vector2f& a,
 																 const Eigen::Vector2f& b,
 																 const Eigen::Vector2f& c) {
 	Eigen::Vector2f ba_hat = (b-a).normalized();

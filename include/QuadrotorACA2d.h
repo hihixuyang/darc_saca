@@ -18,6 +18,8 @@ public:
 	Eigen::Vector2f sensing_noise(void);
 	void AvoidCollisions(const Input& desired_input,
 											 std::vector<Obstacle2d>& obstacle_list);
+	std::vector<Eigen::Vector2f> InitialDesiredTrajectory(void);
+	std::vector<Eigen::Vector2f> FinalDesiredTrajectory(void);
 
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
@@ -31,8 +33,9 @@ private:
 	
 	std::vector<Line> halfplanes_;  // Set of halfplanes representing collisions
 	std::vector<Eigen::Vector2f> p_star_;  // Desired positions from trajectory
+	std::vector<Eigen::Vector2f> p_star_initial_;
 	std::vector<Eigen::Matrix2f> J_;  // Set of jacobians along trajectory
-
+	
 	// Set the desired input from high level controller or user
 	void set_desired_u(const Input& desired_u);
 

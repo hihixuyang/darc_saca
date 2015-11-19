@@ -177,3 +177,11 @@ float QuadrotorBase::true_speed(void) {
 float QuadrotorBase::est_speed(void) {
 	return x_hat_.segment(3,3).norm();
 }  // est_speed
+
+float QuadrotorBase::true_yaw(void) {
+	return x_[8];
+}  // true_yaw
+
+float QuadrotorBase::est_yaw(void) {
+	return x_hat_[8];
+}  // est_yaw
