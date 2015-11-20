@@ -36,32 +36,127 @@ void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 	new_data = true;
 }  // laser_callback
 
-// The following functions setup rviz visualization for the quadrotor
-void SetupQuadVisualization(visualization_msgs::Marker&, int);
-void SetupInitialTrajectoryVisualization(visualization_msgs::Marker&, int);
-void SetupFinalTrajectoryVisualization(visualization_msgs::Marker&, int);
+// Sets up the blue sphere representing the quad in rviz
+void SetupQuadVisualization(visualization_msgs::Marker& quad_dummy, int id) {
+	quad_dummy.header.frame_id = "world";
+	quad_dummy.id = id;
+	quad_dummy.type = visualization_msgs::Marker::SPHERE;
+	quad_dummy.action = visualization_msgs::Marker::ADD;
+	quad_dummy.scale.x = 0.282*2.0f;
+	quad_dummy.scale.y = 0.282*2.0f;
+	quad_dummy.scale.z = 0.282*2.0f;
+	quad_dummy.color.a = 0.5;
+	quad_dummy.color.b = 1.0;
+}
 
-// The following functions set up rviz visualization for the lidar data
-void SetupFullLaserVisualization(visualization_msgs::Marker&, int);
-void SetupSegmentedLaserVisualization(visualization_msgs::Marker&, int);
-void SetupSegmentedLinesVisualization(visualization_msgs::Marker&, int);
-void SetupMinkowskiPointsVisualization(visualization_msgs::Marker&, int);
-void SetupMinkowskiLinesVisualization(visualization_msgs::Marker&, int);
+// Show the initial desired trajectory as a red line in rviz
+void SetupInitialTrajectoryVisualization(visualization_msgs::Marker& trajectory,
+																				 int id) {
+	trajectory.header.frame_id = "world";
+	trajectory.id = id;
+	trajectory.type = visualization_msgs::Marker::LINE_STRIP;
+	trajectory.action = visualization_msgs::Marker::ADD;
+	trajectory.scale.x = 0.04;
+	trajectory.color.a = 1.0;
+	trajectory.color.r = 1.0;
+}
+
+// Show the final desired trajectory as a green line in rviz 
+void SetupFinalTrajectoryVisualization(visualization_msgs::Marker& trajectory,
+																			 int id) {
+	trajectory.header.frame_id = "world";
+	trajectory.id = id;
+	trajectory.type = visualization_msgs::Marker::LINE_STRIP;
+	trajectory.action = visualization_msgs::Marker::ADD;
+	trajectory.scale.x = 0.04;
+	trajectory.color.a = 1.0;
+	trajectory.color.g = 1.0;
+}
+
+// Show every lidar point as a red dot in rviz
+void SetupFullLaserVisualization(visualization_msgs::Marker& full_laser,
+																 int id) {
+	full_laser.header.frame_id = "world";
+	full_laser.id = id;
+	full_laser.type = visualization_msgs::Marker::POINTS;
+	full_laser.action = visualization_msgs::Marker::ADD;
+	full_laser.scale.x = 0.04;
+	full_laser.scale.y = 0.04;
+	full_laser.color.a = 1.0;
+	full_laser.color.r = 1.0;
+}
+
+// Show only the segmented vertices as white dots in rviz
+void SetupSegmentedLaserVisualization(visualization_msgs::Marker& seg_laser,
+																			int id) {
+	seg_laser.header.frame_id = "world";
+	seg_laser.id = id;
+	seg_laser.type = visualization_msgs::Marker::POINTS;
+	seg_laser.action = visualization_msgs::Marker::ADD;
+	seg_laser.scale.x = 0.05;
+	seg_laser.scale.y = 0.05;
+	seg_laser.color.a = 1.0;
+	seg_laser.color.r = 1.0;
+	seg_laser.color.g = 1.0;
+	seg_laser.color.b = 1.0;
+}
+
+// Show black lines between the segmented vertices, representing the walls the
+// quadrotor sees
+void SetupSegmentedLinesVisualization(visualization_msgs::Marker& laser_lines,
+																			int id) {
+	laser_lines.header.frame_id = "world";
+	laser_lines.id = id;
+	laser_lines.type = visualization_msgs::Marker::LINE_STRIP;
+	laser_lines.action = visualization_msgs::Marker::ADD;
+	laser_lines.scale.x = 0.035;
+	laser_lines.color.a = 1.0;
+}
+
+// Show the vertices of the Minkowski sum as white dots
+void SetupMinkowskiPointsVisualization(visualization_msgs::Marker& mink_points,
+																			 int id) {
+	mink_points.header.frame_id = "world";
+	mink_points.id = id;
+	mink_points.type = visualization_msgs::Marker::POINTS;
+	mink_points.action = visualization_msgs::Marker::ADD;
+	mink_points.scale.x = 0.05;
+	mink_points.scale.y = 0.05;
+	mink_points.color.a = 1.0;
+	mink_points.color.r = mink_points.color.g = mink_points.color.b = 1.0;
+}
+
+// Show the lines between the Minkowski vertices as a black line
+void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
+																			int id) {
+	mink_lines.header.frame_id = "world";
+	mink_lines.id = id;
+	mink_lines.type = visualization_msgs::Marker::LINE_STRIP;
+	mink_lines.action = visualization_msgs::Marker::ADD;
+	mink_lines.scale.x = 0.035;
+	mink_lines.color.a = 1.0;
+}
 
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_2dsaca_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
 
+	// desired_u and desired_yaw comes from input mapping node
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, u_callback);
 	ros::Subscriber yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
+
+	// laser_scan comes from vrep_lidar which reads the lidar data from vrep
+	// and outputs it at the frequency of the true hardware
 	ros::Subscriber laser_scan = nh.subscribe("laser_scan",1,laser_callback);
-	
+
+	// Publishes the quadrotor pose to the vrep visualizser
 	ros::Publisher pos_pub =
 		nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
 	ros::Publisher quat_pub =
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
+	// RVIZ publishers
 	ros::Publisher quad_pub = nh.advertise<visualization_msgs::Marker>("quad_dummy_vis", 0);
 	ros::Publisher init_traj_pub = nh.advertise<visualization_msgs::Marker>("init_traj_vis", 0);
 	ros::Publisher fin_traj_pub = nh.advertise<visualization_msgs::Marker>("final_traj_vis", 0);
@@ -87,13 +182,15 @@ int main(int argc, char* argv[]) {
 	SetupMinkowskiPointsVisualization(mink_points, 6);
 	visualization_msgs::Marker mink_lines;
 	SetupMinkowskiLinesVisualization(mink_lines, 7);
-	
+
+	// Read in the value of hte time horizon from the launch file
 	double time_horizon;
 	if (nh.getParam("/time_horizon", time_horizon)) {;}
 	else {
 		ROS_ERROR("Set Time Horizon");
 		return 0;
 	}
+	// Setup the class instance of the quadrotor for collision avoidance
 	QuadrotorACA2d quad(time_horizon);
 	
 	QuadrotorACA2d::State x0 = QuadrotorACA2d::State::Zero();
@@ -111,6 +208,8 @@ int main(int argc, char* argv[]) {
 
 	float radius = quad.radius();
 
+	// Read in the distance threshold for the obstacle segmentation from
+	// the launch file
 	double distance_threshold;
 	if (nh.getParam("/dist_thresh", distance_threshold)) {;}
 	else {
@@ -122,7 +221,8 @@ int main(int argc, char* argv[]) {
 	while(ros::ok()) {
 		ros::spinOnce();
 
-		//std::cout << quad.est_yaw() << std::endl;
+		// Only process the lidar vertices if new data is received from
+		// the lidar node, preventing extra computation
 		if (new_data) {
 			// Read points in 2D space for segmentation
 			std::vector<Eigen::Vector2f> full_point_list(laser_in.ranges.size());
@@ -135,7 +235,9 @@ int main(int argc, char* argv[]) {
 
 			// Set relative angle of the lidar
 			float theta = laser_in.angle_min - quad.est_yaw();
-			
+
+			// Loop over the data and save the lidar points into the list
+			// for segmentation and the list for visualization
 			Eigen::Vector2f tmp_point;
 			for (int data_index = 0; data_index < laser_in.ranges.size();
 					 ++data_index) {
@@ -154,9 +256,29 @@ int main(int argc, char* argv[]) {
 				theta += laser_in.angle_increment;
 			}
 
-			LidarSegment2d lidar_full_points(full_point_list, range_list, distance_threshold);
-			std::vector<Eigen::Vector2f> lidar_segmented_points = lidar_full_points.segmented_points();
-
+			// Perform the segmentation algorithm to get the reduced vertex list
+			LidarSegment2d lidar_full_points(full_point_list,
+																			 range_list,
+																			 distance_threshold);
+			std::vector<Eigen::Vector2f> lidar_segmented_points =
+				lidar_full_points.segmented_points();
+			MinkowskiSum2d minkowski_points(lidar_segmented_points, quad.radius());
+			std::vector<Eigen::Vector2f> minkowski_point_list =
+				minkowski_points.CalculateMinkowskiSum();
+			obstacle_list.clear();
+			/*
+			std::cout << "original" << std::endl;
+			for (int i = 0; i < lidar_segmented_points.size(); ++i) {
+				std::cout << lidar_segmented_points[i].transpose() << std::endl;
+			}
+			std::cout << "new: " << std::endl;
+			for (int i = 0; i < minkowski_point_list.size(); ++i) {
+				std::cout << minkowski_point_list[i].transpose() << std::endl;
+			}
+			int k;
+			std::cin >> k;
+			*/
+			// Store the segmented points for rviz visualization
 			seg_laser_points.points.clear();
 			laser_lines.points.clear();
 			mink_points.points.clear();
@@ -169,8 +291,14 @@ int main(int argc, char* argv[]) {
 				seg_laser_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				laser_lines.points.push_back(rviz_point);
+				rviz_point.x = minkowski_point_list[0][0];
+				rviz_point.y = minkowski_point_list[0][1];
+				rviz_point.z = 0.05;
+				mink_points.points.push_back(rviz_point);
+				rviz_point.z = 0.0;
+				mink_lines.points.push_back(rviz_point);
 			}
-			obstacle_list.clear();
+
 			for (int index = 1; index < lidar_segmented_points.size(); ++index) {
 				// Show segmented points and lines in visualization
 				rviz_point.x = lidar_segmented_points[index][0];
@@ -179,15 +307,25 @@ int main(int argc, char* argv[]) {
 				seg_laser_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				laser_lines.points.push_back(rviz_point);
-
+				rviz_point.x = minkowski_point_list[index][0];
+				rviz_point.y = minkowski_point_list[index][1];
+				rviz_point.z = 0.1;
+				mink_points.points.push_back(rviz_point);
+				rviz_point.z = 0.0;
+				mink_lines.points.push_back(rviz_point);
+				
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector2f right = lidar_segmented_points[index];
 				Eigen::Vector2f left = lidar_segmented_points[index - 1];
-				Eigen::Vector2f normal = (Eigen::Rotation2Df(M_PI/2.0f) * (left - right)).normalized();
+				Eigen::Vector2f normal;
+				normal << -(left[1] - right[1]), (left[0] - right[0]);
+				normal.normalize();
+				//Eigen::Vector2f normal = (Eigen::Rotation2Df(M_PI/2.0f) * (left - right)).normalized();
 				Obstacle2d wall(right, left, normal, radius);
-				obstacle_list.push_back(wall);	 
+				//obstacle_list.push_back(wall);	 
 			}
-			
+
+			// Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
 			full_laser_points.header.stamp = ros::Time();
 			full_point_pub.publish(full_laser_points);
@@ -195,7 +333,9 @@ int main(int argc, char* argv[]) {
 			seg_point_pub.publish(seg_laser_points);
 			laser_lines.header.stamp = ros::Time();
 			line_pub.publish(laser_lines);
-		
+			mink_point_pub.publish(mink_points);
+			mink_line_pub.publish(mink_lines);
+			
 			new_data = false;
 		}
 		
@@ -248,96 +388,4 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-void SetupQuadVisualization(visualization_msgs::Marker& quad_dummy, int id) {
-	quad_dummy.header.frame_id = "world";
-	quad_dummy.id = id;
-	quad_dummy.type = visualization_msgs::Marker::SPHERE;
-	quad_dummy.action = visualization_msgs::Marker::ADD;
-	quad_dummy.scale.x = 0.282*2.0f;
-	quad_dummy.scale.y = 0.282*2.0f;
-	quad_dummy.scale.z = 0.282*2.0f;
-	quad_dummy.color.a = 0.5;
-	quad_dummy.color.b = 1.0;
-}
 
-void SetupInitialTrajectoryVisualization(visualization_msgs::Marker& trajectory_points,
-																				 int id) {
-	trajectory_points.header.frame_id = "world";
-	trajectory_points.id = id;
-	trajectory_points.type = visualization_msgs::Marker::LINE_STRIP;
-	trajectory_points.action = visualization_msgs::Marker::ADD;
-	trajectory_points.scale.x = 0.04;
-	trajectory_points.color.a = 1.0;
-	trajectory_points.color.r = 1.0;
-}
-
-void SetupFinalTrajectoryVisualization(visualization_msgs::Marker& trajectory_points,
-																			 int id) {
-	trajectory_points.header.frame_id = "world";
-	trajectory_points.id = id;
-	trajectory_points.type = visualization_msgs::Marker::LINE_STRIP;
-	trajectory_points.action = visualization_msgs::Marker::ADD;
-	trajectory_points.scale.x = 0.04;
-	trajectory_points.color.a = 1.0;
-	trajectory_points.color.g = 1.0;
-}
-
-void SetupFullLaserVisualization(visualization_msgs::Marker& full_laser_points,
-																 int id) {
-	full_laser_points.header.frame_id = "world";
-	full_laser_points.id = id;
-	full_laser_points.type = visualization_msgs::Marker::POINTS;
-	full_laser_points.action = visualization_msgs::Marker::ADD;
-	full_laser_points.scale.x = 0.04;
-	full_laser_points.scale.y = 0.04;
-	full_laser_points.color.a = 1.0;
-	full_laser_points.color.r = 1.0;
-}
-
-	void SetupSegmentedLaserVisualization(visualization_msgs::Marker& seg_laser_points,
-																				int id) {
-	seg_laser_points.header.frame_id = "world";
-	seg_laser_points.id = id;
-	seg_laser_points.type = visualization_msgs::Marker::POINTS;
-	seg_laser_points.action = visualization_msgs::Marker::ADD;
-	seg_laser_points.scale.x = 0.05;
-	seg_laser_points.scale.y = 0.05;
-	seg_laser_points.color.a = 1.0;
-	seg_laser_points.color.r = 1.0;
-	seg_laser_points.color.g = 1.0;
-	seg_laser_points.color.b = 1.0;
-}
-
-void SetupSegmentedLinesVisualization(visualization_msgs::Marker& laser_lines,
-																			int id) {
-	laser_lines.header.frame_id = "world";
-	laser_lines.id = id;
-	laser_lines.type = visualization_msgs::Marker::LINE_STRIP;
-	laser_lines.action = visualization_msgs::Marker::ADD;
-	laser_lines.scale.x = 0.035;
-	laser_lines.color.a = 1.0;
-}
-
-void SetupMinkowskiPointsVisualization(visualization_msgs::Marker& mink_points,
-																			 int id) {
-	mink_points.header.frame_id = "world";
-	mink_points.id = id;
-	mink_points.type = visualization_msgs::Marker::POINTS;
-	mink_points.action = visualization_msgs::Marker::ADD;
-	mink_points.scale.x = 0.05;
-	mink_points.scale.y = 0.05;
-	mink_points.color.a = 1.0;
-	mink_points.color.r = mink_points.color.g = mink_points.color.b = 0.8;
-}
-	
-void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
-																			int id) {
-	mink_lines.header.frame_id = "world";
-	mink_lines.id = id;
-	mink_lines.type = visualization_msgs::Marker::LINE_STRIP;
-	mink_lines.action = visualization_msgs::Marker::ADD;
-	mink_lines.scale.x = 0.05;
-	mink_lines.scale.y = 0.05;
-	mink_lines.color.a = 1.0;
-	mink_lines.color.r = mink_lines.color.g = mink_lines.color.b = 0.2;
-}

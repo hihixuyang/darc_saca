@@ -42,6 +42,8 @@ std::vector<Eigen::Vector2f> LidarSegment2d::segmented_points(void) {
 		for (int index = 0; index < full_points_.size(); ++index) {
 			low_segment[index] = index;
 		}
+		// Set up segments so the points are in two groups as
+		// (v_0, v_1, v_2, ... v_n-1, v_n), (v_n, v_0)
 		std::vector<int> high_segment(2);
 		high_segment[0] = full_points_.size()-1;
 		high_segment[1] = 0;
@@ -51,90 +53,38 @@ std::vector<Eigen::Vector2f> LidarSegment2d::segmented_points(void) {
 		segmented_indices_.clear();
 
 		// Cluster based on radii difference
+		// If the radii of two points in a group are different by more than
+		// radius_threshold_ than the group will be split, i.e.
+		// (v_0, v_1, v_2, v_3) --> (v_0, v_1), (v_1, v_2, v_3)
 		PerformClustering(segments);
+		
 		// Segment using split and merge
+		// Takes the pre-clustered groups and performs split-and-merge
+		// The algorithm is recursive unti groups of two remain.
+		// A line is made between the start and end of each cluster and the distance
+		// of every other point in the cluster to that line is calculated. If that
+		// distance is greater than distance_threshold_ than the cluster is split
+		// into two clusters at that point. If the points are within the value of
+		// distane_threshold_, they are removed from the group leaving only the ends
 		int start_index = 0;
 		PerformSplitAndMerge(segments, start_index);
-		/*
-		std::cout << "Segments: ";
-		for (int i = 0; i < segments.size(); ++i) {
-			std::cout << "(";
-			for (int j = 0; j < segments[i].size(); ++j) {
-				std::cout << segments[i][j];
-				if (j < segments[i].size() - 1) {
-					std::cout << ", ";
-				} else {
-					std::cout << ")";
-				}
-			}
-			if (i < segments.size() -1) {
-				std::cout << ", ";
-			} else {
-				std::cout << std::endl;
-			}
-		}
-		int k;
-		std::cin >> k;
 
-		std::cout << "Adjust end" << std::endl;
-		*/
+		// The initial split-and-merge leaves the initial and final vertex as a line
+		// which isn't always the true segmentation,
+		// i.e. (v_0, v_a), (v_a, v_b) (v_b, v_n), (v_n, v_0)
+		// This adjusts the final segment to be (v_b, v_n, v_0, v_a) and removes the
+		// first segment. The split and merge is then recalculated to eliminate
+		// v_0 and v_n if they're not true segmented vertices
 		segments.back().insert(segments.back().begin(),
 													 segments[segments.size() - 2].front());
 		segments.back().push_back(segments.front().back());
 		segments.erase(segments.begin() + segments.size() - 2);
 		segments.erase(segments.begin());
-		/*
-		for (int i = 0; i < segments.size(); ++i) {
-			std::cout << "(";
-			for (int j = 0; j < segments[i].size(); ++j) {
-				std::cout << segments[i][j];
-				if (j < segments[i].size() - 1) {
-					std::cout << ", ";
-				} else {
-					std::cout << ")";
-				}
-			}
-			if (i < segments.size() -1) {
-				std::cout << ", ";
-			} else {
-				std::cout << std::endl;
-			}
-		}
-		std::cin >> k;
-		std::cout << "Re-segment" << std::endl;
-		*/
+
 		start_index = 0;
 		segmented_indices_.clear();
 		PerformSplitAndMerge(segments, start_index);
 		segmented_indices_.push_back(segmented_indices_[0]);
-		/*
-		for (int i = 0; i < segments.size(); ++i) {
-			std::cout << "(";
-			for (int j = 0; j < segments[i].size(); ++j) {
-				std::cout << segments[i][j];
-				if (j < segments[i].size() - 1) {
-					std::cout << ", ";
-				} else {
-					std::cout << ")";
-				}
-			}
-			if (i < segments.size() -1) {
-				std::cout << ", ";
-			} else {
-				std::cout << std::endl;
-			}
-		}
-		std::cout << std::endl << "Segmented indices: ";
-		for (int i = 0; i < segmented_indices_.size(); ++i) {
-			std::cout << segmented_indices_[i];
-			if (i < segmented_indices_.size() - 1) {
-				std::cout << ",";
-			} else {
-				std::cout << std::endl;
-			}
-		}
-		std::cin >> k;
-		*/
 		
 		segmented_points_.resize(segments.size() + 1);
 		int i = 0;
@@ -185,7 +135,7 @@ void LidarSegment2d::PerformSplitAndMerge(std::vector<std::vector<int> >& segmen
 	}
 }  // PerformSegmentation
 
-// Split a line segment at the furthest point
+// Split a line segment at the point in the cluster furthest from the line
 std::vector< std::vector<int> >
 LidarSegment2d::SplitAtFurthestPoint(const std::vector<int>& segment) {
 	Point break_point = PointFarthestFromLine(segment);
