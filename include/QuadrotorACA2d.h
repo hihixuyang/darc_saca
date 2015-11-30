@@ -72,7 +72,7 @@ private:
 	float Projection(Obstacle2d& obstacle, int index);
 	
 	// Return the position on the trajectory with maximum penetration depth
-	int FindMaximumPenetration(Obstacle2d& obstacle, int starting_index);
+	Eigen::Vector2f FindMaximumPenetration(Obstacle2d& obstacle, int starting_index);
 	
 	// Create a halfplane for a given collision that is useable by the RVO lib
 	void CreateHalfplane(const Eigen::Vector2f& pos_colliding,
