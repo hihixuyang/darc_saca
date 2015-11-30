@@ -162,12 +162,32 @@ Eigen::Vector2f QuadrotorACA2d::trajectory_position(size_t time_step) {
 	return p_star_[time_step];
 }  // trajectory_position
 
+float QuadrotorACA2d::Projection(Obstacle2d& obstacle, int index) {
+	return abs(obstacle.normal().transpose() *
+						 (p_star_[index] - obstacle.translated_vertices(0)));
+}
+
+int QuadrotorACA2d::FindMaximumPenetration(Obstacle2d& obstacle, int starting_index) {
+	// For a given obstacle, loop over the trajectory from starting_index
+	// until either the project distance descreases of the final position
+	// is found. This approach will assume the trajectory only has a single
+	// inflection point along the curve.
+	int index = starting_index + 1;
+	for (; index < static_cast<int>(time_horizon_/dt_); ++index) {
+		if (Projection(obstacle, index - 1) > Projection(obstacle, index)) {
+			//return index - 1;
+		}
+	}
+	return index;
+}
+				
 void QuadrotorACA2d::CreateHalfplane(const Eigen::Vector2f& pos_colliding,
+																		 const Eigen::Vector2f& pos_desired,
 																		 const Eigen::Vector2f& normal) {
 	Eigen::Vector2f a;
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
-																(pos_colliding - desired_position() +
+																(pos_colliding - pos_desired +
 																 sigma(normal)*normal)) + 0.0002f) / a.norm();
 	a.normalize();
 	
@@ -212,6 +232,8 @@ bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list) {
   					obstacle_list[plane_index].TranslatedIntersectionPoint(
 							current_position,
 							desired_position),
+						trajectory_position(FindMaximumPenetration(obstacle_list[plane_index],
+																											 trajectory_index)),
 						obstacle_list[plane_index].normal());
 					break;
 				}
