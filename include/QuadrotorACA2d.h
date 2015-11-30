@@ -75,14 +75,9 @@ private:
 
 	// Clear the halfplane list after the algorithm has completed
 	void ClearHalfplanes(void);
-	
-	// Find which obstacles can potentially be colliding
-	std::vector<int>
-		FindPotentialCollidingPlanes(std::vector<Obstacle2d>& obstacle_list);
 
 	// Check if a collision has occured between the trajectory and an obstacle
-	bool IsThereACollision(std::vector<Obstacle2d>& obstacle_list,
-												 std::vector<int>& index_list);
+	bool IsThereACollision(std::vector<Obstacle2d>& obstacle_list);
 
 	// Run the linear programming to calcualte a change in input
 	void CalculateDeltaU(void);
