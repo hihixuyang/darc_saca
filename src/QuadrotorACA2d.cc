@@ -51,10 +51,7 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 		if (loop_index == 0) {
 			p_star_initial_ = p_star_;
 		}
-		std::vector<int> potential_colliding_planes =
-			FindPotentialCollidingPlanes(obstacle_list);
-		found_collision = IsThereACollision(obstacle_list,
-																				potential_colliding_planes);
+		found_collision = IsThereACollision(obstacle_list);
 		if (!found_collision)
 			break;
 		CalculateDeltaU();
@@ -186,25 +183,7 @@ void QuadrotorACA2d::ClearHalfplanes(void) {
 	halfplanes_.clear();
 }  // ClearHalfplanes
 
-std::vector<int> QuadrotorACA2d::FindPotentialCollidingPlanes(
-	std::vector<Obstacle2d>& obstacle_list) {
-	// Iterate over obstales
-	std::vector<int> potential_colliding_obstacle_indices;
-	for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
-			 ++obstacle_index) {
-		/*
-		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-				&& obstacle_list[obstacle_index].IsTrueSeeable(Eigen::Vector2f::Zero())) {
-			potential_colliding_obstacle_indices.push_back(obstacle_index);
-		}
-		*/
-		potential_colliding_obstacle_indices.push_back(obstacle_index);
-	}
-	return potential_colliding_obstacle_indices;
-}  // FindPotentialCollidingPlanes
-
-bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list,
-																			 std::vector<int>& index_list) {
+bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list) {
 	// First loop over the trajectory, piecewise, and check for collisions
 	int trajectory_index = 1;
 	Eigen::Vector2f current_position, desired_position;
@@ -215,32 +194,32 @@ bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list,
 		// Loop over all the possible colliding planes to check for collision
 		// against that single trajectory segment
 		int plane_index = 0;
-		for (; plane_index < index_list.size(); ++plane_index) {
+		for (; plane_index < obstacle_list.size(); ++plane_index) {
 			// First check for the segments dot products for a simpler computation,
 			// avoiding matrix inverse of solving intersection
-			bool p0 = obstacle_list[index_list[plane_index]].normal().transpose() *
-				(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
-			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
-				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
+			bool p0 = obstacle_list[plane_index].normal().transpose() *
+				(current_position - obstacle_list[plane_index].true_vertices(0)) > 0.0;
+			bool p1 = obstacle_list[plane_index].normal().transpose() *
+				(desired_position - obstacle_list[plane_index].translated_vertices(0)) < 0.0;
 			if (p0 && p1) {
 				// Check the segment for a collisions
-				if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(
+				if (obstacle_list[plane_index].IsTranslatedIntersecting(
 							current_position,
 							desired_position)) {
 				  // If one is found, create the halfplane for that collision
   				// and stop checking for collisions
   			  CreateHalfplane(
-  					obstacle_list[index_list[plane_index]].TranslatedIntersectionPoint(
+  					obstacle_list[plane_index].TranslatedIntersectionPoint(
 							current_position,
 							desired_position),
-						obstacle_list[index_list[plane_index]].normal());
+						obstacle_list[plane_index].normal());
 					break;
 				}
 			}
 		}
 		// If a collision was found, plane_index should be < index_list.size() and
 		// the method should stop looping over the trajectory
-		if (plane_index < index_list.size())
+		if (plane_index < obstacle_list.size())
 			break;
 	}
 	// If a collision was found, the loop was exited early and
