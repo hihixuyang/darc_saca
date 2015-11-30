@@ -14,6 +14,8 @@
 #include "MinkowskiSum2d.h"
 #include "wallVertices.h"
 
+#define ONBOARD_SENSING
+
 // Read in the desired input from the xbox controller
 Eigen::Vector3f u_goal;
 void u_callback(const geometry_msgs::Vector3& u_in) {
@@ -266,18 +268,7 @@ int main(int argc, char* argv[]) {
 			std::vector<Eigen::Vector2f> minkowski_point_list =
 				minkowski_points.CalculateMinkowskiSum();
 			obstacle_list.clear();
-			/*
-			std::cout << "original" << std::endl;
-			for (int i = 0; i < lidar_segmented_points.size(); ++i) {
-				std::cout << lidar_segmented_points[i].transpose() << std::endl;
-			}
-			std::cout << "new: " << std::endl;
-			for (int i = 0; i < minkowski_point_list.size(); ++i) {
-				std::cout << minkowski_point_list[i].transpose() << std::endl;
-			}
-			int k;
-			std::cin >> k;
-			*/
+
 			// Store the segmented points for rviz visualization
 			seg_laser_points.points.clear();
 			laser_lines.points.clear();
@@ -313,7 +304,8 @@ int main(int argc, char* argv[]) {
 				mink_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
-				
+
+#ifdef ONBOARD_SENSING
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector2f right = lidar_segmented_points[index];
 				Eigen::Vector2f left = lidar_segmented_points[index - 1];
@@ -322,8 +314,10 @@ int main(int argc, char* argv[]) {
 				normal.normalize();
 				//Eigen::Vector2f normal = (Eigen::Rotation2Df(M_PI/2.0f) * (left - right)).normalized();
 				Obstacle2d wall(right, left, normal, radius);
-				//obstacle_list.push_back(wall);	 
+				obstacle_list.push_back(wall);
+#endif				
 			}
+
 
 			// Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
@@ -338,7 +332,19 @@ int main(int argc, char* argv[]) {
 			
 			new_data = false;
 		}
-		
+
+#ifndef ONBOARD_SENSING
+		  Eigen::Vector2f p = quad.true_position().head(2);
+			for (int i = 1; i < 5; ++i) {
+				Eigen::Vector2f right = v[i].tr.head(2) - p + quad.sensing_noise();
+				Eigen::Vector2f left = v[i].tl.head(2) - p + quad.sensing_noise();
+				Eigen::Vector2f normal;
+				normal << -(left[1] - right[1]), (left[0] - right[0]);
+				normal.normalize();
+				Obstacle2d wall(right, left, normal, radius);
+				obstacle_list.push_back(wall);
+			}
+#endif
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
 		quad.AvoidCollisions(u_curr, obstacle_list);
