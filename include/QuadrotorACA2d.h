@@ -70,6 +70,7 @@ private:
 
 	// Create a halfplane for a given collision that is useable by the RVO lib
 	void CreateHalfplane(const Eigen::Vector2f& pos_colliding,
+											 const Eigen::Vector2f& pos_desired,
 											 const Eigen::Vector2f& normal);
 
 	// Clear the halfplane list after the algorithm has completed

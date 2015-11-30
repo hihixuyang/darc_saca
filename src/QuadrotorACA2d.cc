@@ -166,11 +166,12 @@ Eigen::Vector2f QuadrotorACA2d::trajectory_position(size_t time_step) {
 }  // trajectory_position
 
 void QuadrotorACA2d::CreateHalfplane(const Eigen::Vector2f& pos_colliding,
+																		 const Eigen::Vector2f& pos_desired,
 																		 const Eigen::Vector2f& normal) {
 	Eigen::Vector2f a;
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
-																(pos_colliding - desired_position() +
+																(pos_colliding - pos_desired +
 																 sigma(normal)*normal)) + 0.0002f) / a.norm();
 	a.normalize();
 	
@@ -233,6 +234,7 @@ bool QuadrotorACA2d::IsThereACollision(std::vector<Obstacle2d>& obstacle_list,
   					obstacle_list[index_list[plane_index]].TranslatedIntersectionPoint(
 							current_position,
 							desired_position),
+						this->desired_position(),
 						obstacle_list[index_list[plane_index]].normal());
 					break;
 				}
