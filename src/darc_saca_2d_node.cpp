@@ -14,7 +14,7 @@
 #include "MinkowskiSum2d.h"
 #include "wallVertices.h"
 
-//#define ONBOARD_SENSING
+#define ONBOARD_SENSING
 
 // Read in the desired input from the xbox controller
 Eigen::Vector3f u_goal;
@@ -140,7 +140,7 @@ void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
 }
 
 int main(int argc, char* argv[]) {
-	ros::init(argc, argv, "darc_2dsaca_node");
+	ros::init(argc, argv, "darc_saca_2d_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
 
