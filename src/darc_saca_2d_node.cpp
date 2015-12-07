@@ -140,7 +140,7 @@ void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
 }
 
 int main(int argc, char* argv[]) {
-	ros::init(argc, argv, "darc_2dsaca_node");
+	ros::init(argc, argv, "darc_saca_2d_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
 

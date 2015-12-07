@@ -3,5 +3,5 @@
   <node pkg="vrep_lidar" type="vrep_lidar_node" name="LidarDriver" respawn="true"/>
   <node pkg="darc_ardrone" type="flyfromjoy" name="InputMapping" respawn="true" />
 
-  <node pkg="darc_saca" type="darc_3dsaca_node" name="SACA_3D" respawn="true" output="screen"/>
+  <node pkg="darc_saca" type="darc_saca_3d_node" name="SACA_3D" respawn="true" output="screen"/>
 </launch>
