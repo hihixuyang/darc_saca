@@ -172,7 +172,7 @@ Eigen::Vector2f QuadrotorACA2d::FindMaximumPenetration(Obstacle2d& obstacle, int
 	// until either the project distance descreases of the final position
 	// is found. This approach will assume the trajectory only has a single
 	// inflection point along the curve.
-	//return p_star_.back();
+	return p_star_.back();
 	int index = starting_index + 1;
 	for (; index < static_cast<int>(time_horizon_/dt_); ++index) {
 		if (Projection(obstacle, index - 1) > Projection(obstacle, index)) {
