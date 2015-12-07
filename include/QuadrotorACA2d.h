@@ -21,6 +21,8 @@ public:
 	std::vector<Eigen::Vector2f> InitialDesiredTrajectory(void);
 	std::vector<Eigen::Vector2f> FinalDesiredTrajectory(void);
 
+	std::vector<Eigen::Vector2f> ProjectLidar(std::vector<Eigen::Vector2f>& points);
+	
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
 	Input delta_u_;  // The change in input calculated from the algorithm

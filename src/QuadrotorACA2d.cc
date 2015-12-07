@@ -68,6 +68,16 @@ std::vector<Eigen::Vector2f> QuadrotorACA2d::FinalDesiredTrajectory(void) {
 	return p_star_;
 }
 
+std::vector<Eigen::Vector2f>
+QuadrotorACA2d::ProjectLidar(std::vector<Eigen::Vector2f>& points) {
+	std::vector<Eigen::Vector2f> projected_points(points.size());
+	for (int i = 0; i < points.size(); ++i) {
+		projected_points[i] = points[i];
+	}
+	
+	return projected_points;
+}  // ProjectLidar
+
 void QuadrotorACA2d::set_desired_u(const Input& desired_u) {
 	desired_u_ = desired_u;
 }  // set_desired_u

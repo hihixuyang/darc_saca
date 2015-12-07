@@ -259,9 +259,12 @@ int main(int argc, char* argv[]) {
 			}
 
 			// Perform the segmentation algorithm to get the reduced vertex list
-			LidarSegment2d lidar_full_points(full_point_list,
+			std::vector<Eigen::Vector2f> projected_point_list =
+				quad.ProjectLidar(full_point_list);
+			LidarSegment2d lidar_full_points(projected_point_list,
 																			 range_list,
 																			 distance_threshold);
+			
 			std::vector<Eigen::Vector2f> lidar_segmented_points =
 				lidar_full_points.segmented_points();
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, quad.radius());
