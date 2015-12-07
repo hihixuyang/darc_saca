@@ -14,7 +14,9 @@ QuadrotorACA3d::QuadrotorACA3d(void) {
 	this->SetupNoise();
 
 	p_star_.resize(static_cast<int>(time_horizon_/dt_));
-	J_.resize(static_cast<int>(time_horizon_/dt_));
+	v_star_.resize(static_cast<int>(time_horizon_/dt_));
+	J_p_.resize(static_cast<int>(time_horizon_/dt_));
+	J_v_.resize(static_cast<int>(time_horizon_/dt_));
 }  // QuadrotorACA3d
 
 QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
@@ -30,7 +32,9 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 	this->SetupNoise();
 	
 	p_star_.resize(static_cast<int>(time_horizon_/dt_));
-	J_.resize(static_cast<int>(time_horizon_/dt_));
+	v_star_.resize(static_cast<int>(time_horizon_/dt_));
+	J_p_.resize(static_cast<int>(time_horizon_/dt_));
+	J_v_.resize(static_cast<int>(time_horizon_/dt_));
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
@@ -113,7 +117,8 @@ float QuadrotorACA3d::sigma(const Position& normal) {
 
 void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 	float j_step = 0.0009765625;
-	p_star_[0] = x.head(3);
+	p_star_[0] = x.segment(0,3);
+	v_star_[0] = x.segment(3,3);
 	Mtau_ = XXmat::Zero();
 	// Loop over all timesteps
 	for (size_t time_step = 1; time_step < static_cast<size_t>(time_horizon_/dt_);
@@ -125,7 +130,8 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 			g_ = RobotG(g_, u);
 			FindStateJacobian(g_, u);
 		}
-		p_star_[time_step] = g_.head(3);
+		p_star_[time_step] = g_.segment(0,3);
+		v_star_[time_step] = g_.segment(3,3);
 	  MotionVarianceIntegration();  // Update Mtau_
 		// Loop over input dimension and calculate numerical Jacobian
     for (int dim = 0; dim < 3; ++dim) {  
@@ -140,7 +146,9 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 				gp_[dim] = RobotG(gp_[dim], up);
 				gm_[dim] = RobotG(gm_[dim], um);
 			}
-			J_[time_step].col(dim) = (gp_[dim].head(3) - gm_[dim].head(3))
+			J_p_[time_step].col(dim) = (gp_[dim].segment(0,3) - gm_[dim].segment(0,3))
+				/ (2.0f*j_step);
+			J_v_[time_step].col(dim) = (gp_[dim].segment(3,3) - gm_[dim].segment(3,3))
 				/ (2.0f*j_step);
 		}
 	}
@@ -162,8 +170,9 @@ QuadrotorACA3d::Position QuadrotorACA3d::trajectory_position(size_t time_step) {
 
 void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
+	// First make position halfplane constraint
 	Eigen::Vector3f a;
-	a.transpose() = normal.transpose()*J_.back();
+	a.transpose() = normal.transpose()*J_p_.back();
 	float b = static_cast<float>((normal.transpose() *
 						 										(pos_colliding - desired_position() +
 																 sigma(normal)*normal))	+ 0.0002f) / a.norm();
@@ -171,6 +180,17 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 	
 	Plane tmp_plane;
   tmp_plane.point.x(b*a[0]);
+	tmp_plane.point.y(b*a[1]);
+	tmp_plane.point.z(b*a[2]);
+	tmp_plane.normal.x(a[0]);
+	tmp_plane.normal.y(a[1]);
+	tmp_plane.normal.z(a[2]);
+	halfplanes_.push_back(tmp_plane);
+
+	// Then add velocity halfplane constraint
+	a.transpose() = -normal.transpose()*J_v_.back();
+	b = normal.transpose()*v_star_.back();
+	tmp_plane.point.x(b*a[0]);
 	tmp_plane.point.y(b*a[1]);
 	tmp_plane.point.z(b*a[2]);
 	tmp_plane.normal.x(a[0]);

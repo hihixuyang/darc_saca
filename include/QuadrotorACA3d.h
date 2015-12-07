@@ -31,7 +31,9 @@ private:
 	
 	std::vector<Plane> halfplanes_;  // Set of halfplanes representing collisions
 	std::vector<Position> p_star_;  // Desired positions from trajectory
-	std::vector<Eigen::Matrix3f> J_;  // Set of jacobians along trajectory
+	std::vector<Position> v_star_;  // Desired velocities from trajectory
+	std::vector<Eigen::Matrix3f> J_p_;  // Set of position jacobians
+	std::vector<Eigen::Matrix3f> J_v_;  // Set of velocity jacobians
 
 	// Set the desired input from high level controller or user
 	void set_desired_u(const Input& desired_u);

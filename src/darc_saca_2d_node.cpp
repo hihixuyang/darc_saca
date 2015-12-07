@@ -140,7 +140,7 @@ void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
 }
 
 int main(int argc, char* argv[]) {
-	ros::init(argc, argv, "darc_2dsaca_node");
+	ros::init(argc, argv, "darc_saca_2d_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
 
@@ -159,14 +159,22 @@ int main(int argc, char* argv[]) {
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
 	// RVIZ publishers
-	ros::Publisher quad_pub = nh.advertise<visualization_msgs::Marker>("quad_dummy_vis", 0);
-	ros::Publisher init_traj_pub = nh.advertise<visualization_msgs::Marker>("init_traj_vis", 0);
-	ros::Publisher fin_traj_pub = nh.advertise<visualization_msgs::Marker>("final_traj_vis", 0);
-	ros::Publisher full_point_pub = nh.advertise<visualization_msgs::Marker>("laser_full_points_vis", 0);
-	ros::Publisher seg_point_pub = nh.advertise<visualization_msgs::Marker>("laser_seg_points_vis", 0);
-	ros::Publisher line_pub = nh.advertise<visualization_msgs::Marker>("laser_lines_vis",0);
-	ros::Publisher mink_point_pub = nh.advertise<visualization_msgs::Marker>("mink_point_vis", 0);
-	ros::Publisher mink_line_pub = nh.advertise<visualization_msgs::Marker>("mink_line_vis", 0);
+	ros::Publisher quad_pub =
+		nh.advertise<visualization_msgs::Marker>("quad_dummy_vis", 0);
+	ros::Publisher init_traj_pub =
+		nh.advertise<visualization_msgs::Marker>("init_traj_vis", 0);
+	ros::Publisher fin_traj_pub =
+		nh.advertise<visualization_msgs::Marker>("final_traj_vis", 0);
+	ros::Publisher full_point_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_full_points_vis", 0);
+	ros::Publisher seg_point_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_seg_points_vis", 0);
+	ros::Publisher line_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_lines_vis",0);
+	ros::Publisher mink_point_pub =
+		nh.advertise<visualization_msgs::Marker>("mink_point_vis", 0);
+	ros::Publisher mink_line_pub =
+		nh.advertise<visualization_msgs::Marker>("mink_line_vis", 0);
 
 	visualization_msgs::Marker quad_dummy;
 	SetupQuadVisualization(quad_dummy, 0);

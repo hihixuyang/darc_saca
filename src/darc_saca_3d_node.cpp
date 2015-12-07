@@ -29,7 +29,7 @@ void laser_callback(const sensor_msgs::LaserScan& laser_in) {
 }
 
 int main(int argc, char* argv[]) {
-	ros::init(argc, argv, "darc_3dsaca_node");
+	ros::init(argc, argv, "darc_saca_3d_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
 
