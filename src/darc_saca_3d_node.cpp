@@ -14,7 +14,7 @@
 #include "Obstacle3d.h"
 #include "wallVertices.h"
 
-//#define ONBOARD_SENSING
+#define ONBOARD_SENSING
 
 // Read in the desired input from the xbox controller
 Eigen::Vector3f u_goal;
@@ -39,15 +39,15 @@ void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 }  // laser_callback
 
 // Read in the reading from the top facing sonar
-float top_sonar;
+float top_sonar_dist;
 void top_sonar_callback(const std_msgs::Float32& top_in) {
-	top_sonar = top_in.data;
+	top_sonar_dist = top_in.data;
 }  // top_sonar_callback
 
 // Read in the reading from the bottom facing sonar
-float bottom_sonar;
+float bottom_sonar_dist;
 void bottom_sonar_callback(const std_msgs::Float32& bottom_in) {
-	bottom_sonar = bottom_in.data;
+	bottom_sonar_dist = -bottom_in.data; // negative data since it's below quad
 }  // bottom_sonar_callback
 
 // Sets up the blue sphere representing the quad in rviz
@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
 	// read the top and bottom sonar readings which will be ADC on hardware
 	ros::Subscriber top_sonar = nh.subscribe("/vrep/top_sonar",1,
 																					 top_sonar_callback);
-	ros::Subscriber bottom_sonar = nh.subscribe("/vrep/botton_sonar",1,
+	ros::Subscriber bottom_sonar = nh.subscribe("/vrep/bottom_sonar",1,
 																							bottom_sonar_callback);
 	
 	// Publishes the quadrotor pose to the vrep visualizer
@@ -329,9 +329,26 @@ int main(int argc, char* argv[]) {
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
 				
-#ifdef ONBOARD_SENSING
+#ifdef ONBOARD_SENSING		
 				// Store segmented lines as obstacles for collision avoidance
-
+				Eigen::Vector3f tr, br, tl, bl;
+				tr << lidar_segmented_points[index][0],
+					lidar_segmented_points[index][1],
+					top_sonar_dist;
+				br << lidar_segmented_points[index][0],
+					lidar_segmented_points[index][1],
+					bottom_sonar_dist;
+				tl << lidar_segmented_points[index - 1][0],
+					lidar_segmented_points[index - 1][1],
+					top_sonar_dist;
+				bl << lidar_segmented_points[index - 1][0],
+					lidar_segmented_points[index - 1][1],
+					bottom_sonar_dist;
+				Eigen::Vector3f normal = (tr - br).cross(bl - br);
+				Obstacle3d w_a(tr, br, bl, normal, radius);
+				Obstacle3d w_b(tr, tl, bl, normal, radius);
+				obstacle_list.push_back(w_a);
+				obstacle_list.push_back(w_b);
 #endif
 			}
 
@@ -347,7 +364,27 @@ int main(int argc, char* argv[]) {
 			mink_line_pub.publish(mink_lines);
 		}
 
-#ifndef ONBOARD_SENSING
+#ifdef ONBOARD_SENSING
+		// also store the "floor" and "ceiling" as a large obstacles
+		Eigen::Vector3f tr; tr << 10.0, -10.0, bottom_sonar_dist;
+		Eigen::Vector3f br; br << -10.0, -10.0, bottom_sonar_dist;
+		Eigen::Vector3f tl; tl << 10.0,  10.0, bottom_sonar_dist;
+		Eigen::Vector3f bl; bl << -10.0,  10.0, bottom_sonar_dist;
+		Eigen::Vector3f normal = (tr - br).cross(bl - br);
+		Obstacle3d floor_a(tr, br, bl, normal, radius);
+		Obstacle3d floor_b(tr, tl, bl, normal, radius);
+		obstacle_list.push_back(floor_a);
+		obstacle_list.push_back(floor_b);
+		tr <<  10.0,  10.0, top_sonar_dist;
+		br << -10.0,  10.0, top_sonar_dist;
+		tl <<  10.0, -10.0, top_sonar_dist;
+		bl << -10.0, -10.0, top_sonar_dist;
+		normal << (tr - br).cross(bl - br);
+		Obstacle3d ceil_a(tr, br, bl, normal, radius);
+		Obstacle3d ceil_b(tr, tl, bl, normal, radius);
+		obstacle_list.push_back(ceil_a);
+		obstacle_list.push_back(ceil_b);
+#else
 		Eigen::VectorXf p = quad.true_position();
 		for (int i = 0; i < 5; ++i) {
 			Eigen::Vector3f noise = quad.sensing_noise();
