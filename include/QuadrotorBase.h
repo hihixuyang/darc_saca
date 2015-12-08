@@ -21,6 +21,12 @@ public:
 	float true_speed(void);
 	float est_speed(void);
 
+	float true_roll(void);
+	float est_roll(void);
+
+	float true_pitch(void);
+	float est_pitch(void);
+
 	float true_yaw(void);
 	float est_yaw(void);
 	

@@ -14,7 +14,7 @@
 #include "MinkowskiSum2d.h"
 #include "wallVertices.h"
 
-//#define ONBOARD_SENSING
+#define ONBOARD_SENSING
 
 // Read in the desired input from the xbox controller
 Eigen::Vector3f u_goal;

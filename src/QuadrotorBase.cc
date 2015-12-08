@@ -178,6 +178,22 @@ float QuadrotorBase::est_speed(void) {
 	return x_hat_.segment(3,3).norm();
 }  // est_speed
 
+float QuadrotorBase::true_roll(void) {
+	return x_[6];
+}  // true_roll
+
+float QuadrotorBase::est_roll(void) {
+	return x_hat_[6];
+}  // est_roll
+
+float QuadrotorBase::true_pitch(void) {
+	return x_[7];
+}  // true_pitch
+
+float QuadrotorBase::est_pitch(void) {
+	return x_hat_[7];
+}  // est_pitch
+
 float QuadrotorBase::true_yaw(void) {
 	return x_[8];
 }  // true_yaw
