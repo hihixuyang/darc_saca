@@ -62,11 +62,11 @@ void QuadrotorACA2d::AvoidCollisions(const Input& desired_input,
 
 std::vector<Eigen::Vector2f> QuadrotorACA2d::InitialDesiredTrajectory(void) {
 	return p_star_initial_;
-}
+}  // InitialDesiredTrajectory
 
 std::vector<Eigen::Vector2f> QuadrotorACA2d::FinalDesiredTrajectory(void) {
 	return p_star_;
-}
+}  // FinalDesiredTrajectory
 
 void QuadrotorACA2d::set_desired_u(const Input& desired_u) {
 	desired_u_ = desired_u;

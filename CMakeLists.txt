@@ -132,23 +132,21 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(darc_saca_3d_node 
-  # 3D and 2D
 	src/uncertainty_sampling.cc
 	src/wallVertices.cpp
   src/QuadrotorBase.cc
-	# 3D
 	src/linear_programming_3d.cc
+	src/LidarSegment2d.cc
+	src/MinkowskiSum2d.cc
 	src/Obstacle3d.cc
 	src/QuadrotorACA3d.cc
 	src/darc_saca_3d_node.cpp
 )
 
 add_executable(darc_saca_2d_node
-	#3D and 2d
 	src/uncertainty_sampling.cc
 	src/wallVertices.cpp
 	src/QuadrotorBase.cc
-	# 2D
 	src/linear_programming_2d.cc
 	src/Obstacle2d.cc
 	src/LidarSegment2d.cc

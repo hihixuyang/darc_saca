@@ -152,21 +152,29 @@ int main(int argc, char* argv[]) {
 	// and outputs it at the frequency of the true hardware
 	ros::Subscriber laser_scan = nh.subscribe("laser_scan",1,laser_callback);
 
-	// Publishes the quadrotor pose to the vrep visualizser
+	// Publishes the quadrotor pose to the vrep visualizer
 	ros::Publisher pos_pub =
 		nh.advertise<geometry_msgs::Vector3>("/vrep/position", 1);
 	ros::Publisher quat_pub =
 		nh.advertise<geometry_msgs::Quaternion>("/vrep/quaternion", 1);
 
 	// RVIZ publishers
-	ros::Publisher quad_pub = nh.advertise<visualization_msgs::Marker>("quad_dummy_vis", 0);
-	ros::Publisher init_traj_pub = nh.advertise<visualization_msgs::Marker>("init_traj_vis", 0);
-	ros::Publisher fin_traj_pub = nh.advertise<visualization_msgs::Marker>("final_traj_vis", 0);
-	ros::Publisher full_point_pub = nh.advertise<visualization_msgs::Marker>("laser_full_points_vis", 0);
-	ros::Publisher seg_point_pub = nh.advertise<visualization_msgs::Marker>("laser_seg_points_vis", 0);
-	ros::Publisher line_pub = nh.advertise<visualization_msgs::Marker>("laser_lines_vis",0);
-	ros::Publisher mink_point_pub = nh.advertise<visualization_msgs::Marker>("mink_point_vis", 0);
-	ros::Publisher mink_line_pub = nh.advertise<visualization_msgs::Marker>("mink_line_vis", 0);
+	ros::Publisher quad_pub =
+		nh.advertise<visualization_msgs::Marker>("quad_dummy_vis", 0);
+	ros::Publisher init_traj_pub =
+		nh.advertise<visualization_msgs::Marker>("init_traj_vis", 0);
+	ros::Publisher fin_traj_pub =
+		nh.advertise<visualization_msgs::Marker>("final_traj_vis", 0);
+	ros::Publisher full_point_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_full_points_vis", 0);
+	ros::Publisher seg_point_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_seg_points_vis", 0);
+	ros::Publisher line_pub =
+		nh.advertise<visualization_msgs::Marker>("laser_lines_vis",0);
+	ros::Publisher mink_point_pub =
+		nh.advertise<visualization_msgs::Marker>("mink_point_vis", 0);
+	ros::Publisher mink_line_pub =
+		nh.advertise<visualization_msgs::Marker>("mink_line_vis", 0);
 
 	visualization_msgs::Marker quad_dummy;
 	SetupQuadVisualization(quad_dummy, 0);
@@ -318,7 +326,6 @@ int main(int argc, char* argv[]) {
 #endif				
 			}
 
-
 			// Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
 			full_laser_points.header.stamp = ros::Time();
@@ -345,6 +352,7 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(wall);
 			}
 #endif
+			
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		//Eigen::Vector4f u_curr(1.0, 0.0, 0.0, 0.0);
 		quad.AvoidCollisions(u_curr, obstacle_list);

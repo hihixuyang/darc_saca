@@ -1,6 +1,7 @@
 <launch>
   <node pkg="joy" type="joy_node" name="XboxController" args="/dev/input/js0" respawn="true" />
   <node pkg="vrep_lidar" type="vrep_lidar_node" name="LidarDriver" respawn="true"/>
+
   <node pkg="darc_ardrone" type="flyfromjoy" name="InputMapping" respawn="true" />
 
 	<arg name="tau" default="1.5"/>
@@ -8,6 +9,7 @@
 	<arg name="dist" default="0.1"/>
 	<param name="dist_thresh" value="$(arg dist)"/>
   <node pkg="darc_saca" type="darc_saca_2d_node" name="SACA_2D" respawn="true" output="screen"/>
-	<!--<node pkg="lidar_segmentation" type="lidar_segmentation_node" name="Segmentation"/>-->
+
 	<node pkg="rviz" type="rviz" name="RVIZ" args="--display-config /home/daman/catkin_ws/src/lidar_segmentation/field_robotics.rviz"/>
+
 </launch>
