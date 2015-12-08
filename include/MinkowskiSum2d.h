@@ -9,10 +9,18 @@ public:
 	MinkowskiSum2d(void);
 	MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in, float radius);
 	std::vector<Eigen::Vector2f> CalculateMinkowskiSum(void);
+	
 private:
 	std::vector<Eigen::Vector2f> original_points_;
 	std::vector<Eigen::Vector2f> minkowski_points_;
 	float radius_;
+
+	Eigen::Vector2f FindIntersection(const Eigen::Vector2f&,
+																	 const Eigen::Vector2f&,
+																	 const Eigen::Vector2f&);
+	std::vector<Eigen::Vector2f> FindCircle(const Eigen::Vector2f&,
+																					const Eigen::Vector2f&,
+																					const Eigen::Vector2f&);
 };
 
 #endif
