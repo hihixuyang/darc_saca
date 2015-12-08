@@ -11,13 +11,12 @@
 class QuadrotorACA2d : public QuadrotorBase {
 public:
 	QuadrotorACA2d(void);
-	QuadrotorACA2d(float time_horizon);
+	QuadrotorACA2d(float);
 
 	void SetupNoise(void);
-	void set_time_horizon(float time_horizon);
+	void set_time_horizon(float);
 	Eigen::Vector2f sensing_noise(void);
-	void AvoidCollisions(const Input& desired_input,
-											 std::vector<Obstacle2d>& obstacle_list);
+	void AvoidCollisions(const Input&, std::vector<Obstacle2d>&);
 	std::vector<Eigen::Vector2f> InitialDesiredTrajectory(void);
 	std::vector<Eigen::Vector2f> FinalDesiredTrajectory(void);
 
@@ -37,47 +36,48 @@ private:
 	std::vector<Eigen::Matrix2f> J_;  // Set of jacobians along trajectory
 	
 	// Set the desired input from high level controller or user
-	void set_desired_u(const Input& desired_u);
+	void set_desired_u(const Input&);
 
 	// Set the change in input to zero for a given timestep
 	void ResetDeltaU(void);
 
 	// Solve for Pdot = AP + PA^T + M
-	XXmat MotionVarianceDerivative(const XXmat& Mtau);
+	XXmat MotionVarianceDerivative(const XXmat&);
 
 	// Update Mtau_ for one timestep
 	void MotionVarianceIntegration(void);
 
 	// Solves for projection of variance ellipsoid A onto vector b
-	float VarianceProjection(const Eigen::Matrix2f& A, const Eigen::Vector2f& b);
+	float VarianceProjection(const Eigen::Matrix2f&, const Eigen::Vector2f&);
 
 	// Uncertainty bound methods
-	Eigen::Vector2f PositionUncertaintyProjection(const Eigen::Vector2f& normal);
-	Eigen::Vector2f SensingUncertaintyProjection(const Eigen::Vector2f& normal);
-	float sigma(const Eigen::Vector2f& normal);
+	Eigen::Vector2f PositionUncertaintyProjection(const Eigen::Vector2f&);
+	Eigen::Vector2f SensingUncertaintyProjection(const Eigen::Vector2f&);
+	float sigma(const Eigen::Vector2f&);
 
 	// Solve for p_star_ and J_ for a given number of steps
-	void Linearize(const State& x, const Input& u);  
+	void Linearize(const State&, const Input&);  
 
 	// Solve the forward prediction of the trajectory with initial position of 0.
-	void ForwardPrediction();
+	void ForwardPrediction(void);
 	
 	// Return desired position of current input
 	Eigen::Vector2f desired_position(void);
 
 	// Return position at some point on trajectory
-	Eigen::Vector2f trajectory_position(size_t time_step);
+	Eigen::Vector2f trajectory_position(size_t);
 
 	// Create a halfplane for a given collision that is useable by the RVO lib
-	void CreateHalfplane(const Eigen::Vector2f& pos_colliding,
-											 const Eigen::Vector2f& pos_desired,
-											 const Eigen::Vector2f& normal);
+	void CreateHalfplane(const Eigen::Vector2f&, const Eigen::Vector2f&);
 
 	// Clear the halfplane list after the algorithm has completed
 	void ClearHalfplanes(void);
 
+	// Find potnetial halfplne collisions
+	std::vector<int> FindPotentialCollidingPlanes(std::vector<Obstacle2d>&);
+	
 	// Check if a collision has occured between the trajectory and an obstacle
-	bool IsThereACollision(std::vector<Obstacle2d>& obstacle_list);
+	bool IsThereACollision(std::vector<Obstacle2d>&, std::vector<int>);
 
 	// Run the linear programming to calcualte a change in input
 	void CalculateDeltaU(void);

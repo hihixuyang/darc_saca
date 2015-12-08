@@ -1,15 +1,14 @@
 <launch>
+
   <node pkg="joy" type="joy_node" name="XboxController" args="/dev/input/js0" respawn="true" />
 
   <node pkg="vrep_lidar" type="vrep_lidar_node" name="LidarDriver" respawn="true"/>
 
   <node pkg="darc_ardrone" type="flyfromjoy" name="InputMapping" respawn="true" />
 
-	<arg name="tau" default="1.5"/>
-	<param name="time_horizon" value="$(arg tau)"/>
-	<arg name="dist" default="0.1"/>
-	<param name="dist_thresh" value="$(arg dist)"/>
-  <node pkg="darc_saca" type="darc_saca_3d_node" name="SACA_3D" respawn="true" output="screen"/>
+	<rosparam file="$(find darc_saca)/config/saca.yaml" command="load"/>
+	<node pkg="darc_saca" type="darc_saca_3d_node" name="SACA_3D" respawn="true" output="screen"/>
 
 	<node pkg="rviz" type="rviz" name="RVIZ" args="--display-config /home/daman/catkin_ws/src/lidar_segmentation/field_robotics.rviz"/>
+
 </launch>

@@ -32,7 +32,7 @@ public:
 	
   // Update state estimate from input
   void ApplyInput() {
-    x_ = RobotG(x_, u_);
+    x_ = RobotG(x_, u_) + SampleGaussian(State::Zero(), M_);
 		set_z();
 		KalmanFilter(u_);
   }  // ApplyInput
@@ -67,11 +67,10 @@ protected:
     
   // Solution of state equations for time t
   State RobotG(const State& x, const Input& u) {
-    State m = SampleGaussian(State::Zero(), M_);  
-    State k1 = RobotF(x, u) + m;
-    State k2 = RobotF(x + 0.5*dt_*k1, u) + m;
-    State k3 = RobotF(x + 0.5*dt_*k2, u) + m;
-    State k4 = RobotF(x + dt_*k3, u) + m;
+    State k1 = RobotF(x, u);
+    State k2 = RobotF(x + 0.5*dt_*k1, u);
+    State k3 = RobotF(x + 0.5*dt_*k2, u);
+    State k4 = RobotF(x + dt_*k3, u);
       
     State x_new = x + (dt_/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4);
       

@@ -38,7 +38,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
 	
 	float max_angle = 30.0f*M_PI/180.0f;
-	float max_yaw_rate = 90.0f*M_PI/180.0f;
+	float max_yaw_rate = 45.0f*M_PI/180.0f;
 	float kp2 = 15.1;
 	float kd  = 2.5;
 	float kp3 = 5.0;
@@ -78,29 +78,29 @@ void QuadrotorBase::Setup(void) {
 	x_hat_ = State::Zero();
 	// True process noise (Does not have to be same as Kalman Q)
 	M_ = XXmat::Zero();
-  M_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
-	M_.block<3,3>(3,3) = 0.025*0.025*Eigen::Matrix3f::Identity();
-	M_.block<3,3>(6,6) = 0.005*0.005*Eigen::Matrix3f::Identity();
-	M_.block<3,3>(9,9) = 0.025*0.025*Eigen::Matrix3f::Identity();
+  M_.block<3,3>(0,0) = 0.0005*0.0005*Eigen::Matrix3f::Identity();
+	M_.block<3,3>(3,3) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
+	M_.block<3,3>(6,6) = 0.0005*0.0005*Eigen::Matrix3f::Identity();
+	M_.block<3,3>(9,9) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
 	M_ = XXmat::Zero();
 	
 	// True observation noise (Does not have to be same as Kalman R)
 	N_ = ZZmat::Zero();
-	N_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
-	N_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
+	N_.block<3,3>(0,0) = 0.0075*0.0075*Eigen::Matrix3f::Identity();
+	N_.block<3,3>(3,3) = 0.0075*0.0075*Eigen::Matrix3f::Identity();
 	N_ = ZZmat::Zero();
 	
 	// Kalman process noise
   Q_ = XXmat::Zero();
-  Q_.block<3,3>(0,0) = 0.025*0.025*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(3,3) = 0.05*0.05*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(6,6) = 0.025*0.025*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(9,9) = 0.05*0.05*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(0,0) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(6,6) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(9,9) = 0.005*0.005*Eigen::Matrix3f::Identity();
 
   // Kalman observation noise
   R_ = ZZmat::Zero();
-  R_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
-  R_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
+  R_.block<3,3>(0,0) = 0.01*0.01*Eigen::Matrix3f::Identity();
+  R_.block<3,3>(3,3) = 0.01*0.01*Eigen::Matrix3f::Identity();
 	
   // Observation mapping
 	H_ = ZXmat::Zero();

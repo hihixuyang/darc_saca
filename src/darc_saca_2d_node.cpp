@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
 	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
 
-	float radius = quad.radius();
+	float radius = quad.radius() + 0.0282;
 
 	// Read in the distance threshold for the obstacle segmentation from
 	// the launch file
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 			full_laser_points.points.clear();
 
 			// Set relative angle of the lidar
-			float theta = laser_in.angle_min - quad.est_yaw();
+			float theta_rel = laser_in.angle_min - quad.est_yaw();
 
 			// Loop over the data and save the lidar points into the list
 			// for segmentation and the list for visualization
@@ -253,8 +253,8 @@ int main(int argc, char* argv[]) {
 					 ++data_index) {
 				range_list[data_index] = laser_in.ranges[data_index];
 				//range_list[data_index] += quad.sensing_noise();
-				tmp_point[0] = range_list[data_index]*cos(theta);
-				tmp_point[1] = -range_list[data_index]*sin(theta);
+				tmp_point[0] = range_list[data_index]*cos(theta_rel);
+				tmp_point[1] = -range_list[data_index]*sin(theta_rel);
 				full_point_list[data_index] = tmp_point;
 
 				geometry_msgs::Point laser_point;
@@ -263,7 +263,7 @@ int main(int argc, char* argv[]) {
 				laser_point.z = 0.02;
 				full_laser_points.points.push_back(laser_point);
 				
-				theta += laser_in.angle_increment;
+				theta_rel += laser_in.angle_increment;
 			}
 
 			// Perform the segmentation algorithm to get the reduced vertex list
@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
 																			 distance_threshold);
 			std::vector<Eigen::Vector2f> lidar_segmented_points =
 				lidar_full_points.segmented_points();
-			MinkowskiSum2d minkowski_points(lidar_segmented_points, quad.radius());
+			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
 				minkowski_points.CalculateMinkowskiSum();
 			obstacle_list.clear();

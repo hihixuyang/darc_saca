@@ -4,7 +4,6 @@
 
 QuadrotorACA3d::QuadrotorACA3d(void) {
 	time_horizon_ = 1.0;
-
 	desired_u_ = Input::Zero();
 	delta_u_ = Input::Zero();
 	g_ = State::Zero();
@@ -12,29 +11,25 @@ QuadrotorACA3d::QuadrotorACA3d(void) {
 	gm_.resize(3);
 	this->Setup();
 	this->SetupNoise();
-
 	p_star_.resize(static_cast<int>(time_horizon_/dt_));
 	J_.resize(static_cast<int>(time_horizon_/dt_));
 }  // QuadrotorACA3d
 
 QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 	time_horizon_ = time_horizon;
-
 	desired_u_ = Input::Zero();
 	delta_u_ = Input::Zero();
 	g_ = State::Zero();
 	gp_.resize(3);
 	gm_.resize(3);
-
 	this->Setup();
 	this->SetupNoise();
-	
 	p_star_.resize(static_cast<int>(time_horizon_/dt_));
 	J_.resize(static_cast<int>(time_horizon_/dt_));
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
-	Z_ = 0.0075*0.0075*Eigen::Matrix3f::Identity();
+	Z_ = 0.01*0.01*Eigen::Matrix3f::Identity();
 	Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
@@ -51,7 +46,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 20; ++loop_index) {
+	for (int loop_index = 0; loop_index < 6; ++loop_index) {
 		ForwardPrediction();
 		if (loop_index == 0) {
 			p_star_initial_ = p_star_;
@@ -64,7 +59,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 			break;
 		CalculateDeltaU();
 		ClearHalfplanes();
-	}
+	} 
 	u_ = desired_u_ + delta_u_;
 }  // AvoidCollision
 
@@ -86,7 +81,9 @@ void QuadrotorACA3d::ResetDeltaU(void) {
 
 QuadrotorACA3d::XXmat
 QuadrotorACA3d::MotionVarianceDerivative(const XXmat& Mtau) {
-	return A_*Mtau + Mtau*A_.transpose() + M_;
+	// Uses the Kalman estimated process noise instead of
+	// being tied directly to the true noise
+	return A_*Mtau + Mtau*A_.transpose() + Q_;
 }  // MotionVarianceDerivative
 
 void QuadrotorACA3d::MotionVarianceIntegration(void) {
@@ -176,7 +173,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
-						 										(pos_colliding - desired_position() +
+						 										(pos_colliding - p_star_.back() +
 																 sigma(normal)*normal))	+ 0.0002f) / a.norm();
 	a.normalize();
 	
@@ -212,24 +209,36 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 																			 std::vector<int>& index_list) {
 	// First loop over the trajectory, piecewise, and check for collisions
 	int trajectory_index = 1;
+	Eigen::Vector3f current_position, desired_position;
 	for (; trajectory_index < static_cast<int>(time_horizon_/dt_);
 			 ++trajectory_index) {
+		current_position = trajectory_position(trajectory_index - 1);
+		desired_position = trajectory_position(trajectory_index);
 		// Loop over all the possible colliding planes to check for collision
 		// against that single trajectory segment
 		int plane_index = 0;
 		for (; plane_index < index_list.size(); ++plane_index) {
-			// Check the segment for a collisions
-			if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(
-						trajectory_position(trajectory_index - 1),
-						trajectory_position(trajectory_index))) {
-				// If one is found, create the halfplane for that collision
-				// and stop checking for collisions
-			  CreateHalfplane(
-					obstacle_list[index_list[plane_index]].TranslatedIntersectionPoint(
-						trajectory_position(trajectory_index - 1),
-						trajectory_position(trajectory_index)),
-					obstacle_list[index_list[plane_index]].normal());
-				break;
+			// First check for the segments dot products to avoid matrix inversion
+			// where possible
+			bool p0 = obstacle_list[index_list[plane_index]].normal().transpose() *
+				(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
+			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
+				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
+			
+			if (p0 && p1) {
+				// Check the segment for a collisions	
+				if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(
+							current_position,
+							desired_position)) {
+					// If one is found, create the halfplane for that collision
+					// and stop checking for collisions
+					CreateHalfplane(
+						obstacle_list[index_list[plane_index]].TranslatedIntersectionPoint(
+							current_position,
+							desired_position),
+						obstacle_list[index_list[plane_index]].normal());
+					break;
+				}
 			}
 		}
 		// If a collision was found, plane_index should be < index_list.size() and
@@ -249,6 +258,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
 	Vector3 pref_v(0.0, 0.0, 0.0);
 	Vector3 new_v;
+	
 	size_t plane_fail = linearProgram3(halfplanes_, max_speed,
 																		 pref_v, false, new_v);
 	if (plane_fail < halfplanes_.size())
