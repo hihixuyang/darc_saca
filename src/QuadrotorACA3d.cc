@@ -46,7 +46,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 6; ++loop_index) {
+	for (int loop_index = 0; loop_index < 12; ++loop_index) {
 		ForwardPrediction();
 		if (loop_index == 0) {
 			p_star_initial_ = p_star_;
@@ -116,6 +116,7 @@ QuadrotorACA3d::SensingUncertaintyProjection(const Position& normal) {
 }  // SensingUncertaintyProjection
 
 float QuadrotorACA3d::sigma(const Position& normal) {
+	return 0.0; // REMOVE AFTER DEBUGGING
   return VarianceProjection(Mtau_.block(0,0,3,3) + Z_, normal);
 }  // sigma
 

@@ -7,6 +7,25 @@ LidarSegment2d::LidarSegment2d(void) {
 	radius_threshold_ = 0.5;
 }  // LidarSegment2d
 
+LidarSegment2d::LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list) {
+	distance_threshold_ = 0.05;
+	radius_threshold_ = 0.5;
+	full_points_.resize(point_list.size());
+	for (int point_index = 0; point_index < point_list.size(); ++point_index) {
+		full_points_[point_index] = point_list[point_index];
+	}
+}  // LidarSegment2d
+
+LidarSegment2d::LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
+															 float thresh) {
+	distance_threshold_ = thresh;
+	radius_threshold_ = 0.5;
+	full_points_.resize(point_list.size());
+	for (int point_index = 0; point_index < point_list.size(); ++point_index) {
+		full_points_[point_index] = point_list[point_index];
+	}
+}  // LidarSegment2d
+
 // Custom constructor
 LidarSegment2d::LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 													 const std::vector<float>& range_data) {
@@ -98,17 +117,19 @@ std::vector<Eigen::Vector2f> LidarSegment2d::segmented_points(void) {
 
 // Perform an initial clustering from radius criterion
 void LidarSegment2d::PerformClustering(std::vector< std::vector<int> >& segments) {
-	for (int segment_index = 0; segment_index < segments.size(); ++segment_index) {
-		if (segments[segment_index].size() > 2) {  // skip groups of 2
-			for (int point_index = 1; point_index < segments[segment_index].size();
-					 ++point_index) {
-				if(abs(range_data_[segments[segment_index][point_index]] -
-							 range_data_[segments[segment_index][point_index - 1]]) >
-					 radius_threshold_) {  // radial distance between two is too big, split
-					std::vector< std::vector<int> > split_segments =
-						SplitSegment(segments[segment_index], point_index);
-					segments[segment_index].swap(split_segments[1]);
-					segments.insert(segments.begin() + segment_index, split_segments[0]);
+	if (range_data_.size() > 0) {
+		for (int segment_index = 0; segment_index < segments.size(); ++segment_index) {
+			if (segments[segment_index].size() > 2) {  // skip groups of 2
+				for (int point_index = 1; point_index < segments[segment_index].size();
+						 ++point_index) {
+					if(abs(range_data_[segments[segment_index][point_index]] -
+								 range_data_[segments[segment_index][point_index - 1]]) >
+						 radius_threshold_) {  // radial distance between two is too big, split
+						std::vector< std::vector<int> > split_segments =
+							SplitSegment(segments[segment_index], point_index);
+						segments[segment_index].swap(split_segments[1]);
+						segments.insert(segments.begin() + segment_index, split_segments[0]);
+					}
 				}
 			}
 		}

@@ -13,39 +13,36 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 
 std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
 	if (original_points_.size() > 0) {
-		std::vector<Eigen::Vector2f> normals;
+		std::vector<Eigen::Vector3f> normals(original_points_.size() - 1);
 		for (int i = 1; i < original_points_.size(); ++i) {
-			Eigen::Vector2f normal;
+			Eigen::Vector3f normal;
 			normal << -(original_points_[i-1][1] - original_points_[i][1]),
-				original_points_[i-1][0] - original_points_[i][0];
+				original_points_[i-1][0] - original_points_[i][0], 0;
 			normal.normalize();
-			normals.push_back(normal);
+			normals[i-1] = normal;
 		}
-
+		
 		// First check between first point and last point
-		//if (normals.back().transpose()*normals.front() < 0.0) { // Find Intersection
-			Eigen::Vector2f minkowski_point = FindIntersection(original_points_.back(),
+		if (normals.back().cross(normals.front())[2] < 0.0) { // Find Intersection
+			Eigen::Vector2f minkowski_point = FindIntersection(original_points_[original_points_.size()-2],
 																												 original_points_[0],
 																												 original_points_[1]);
 			minkowski_points_.push_back(minkowski_point);
-			/*
 		} else {  // Add Circle
 		std::vector<Eigen::Vector2f> minkowski_points =
-				FindCircle(original_points_.back(),
+				FindCircle(original_points_[original_points_.size()-2],
 									 original_points_[0],
 									 original_points_[1]);
 			for (int i = 0; i < minkowski_points.size(); ++i) {
 				minkowski_points_.push_back(minkowski_points[i]);
 			}
 		}
-			*/
 		for (int i = 1; i < original_points_.size()-1; ++i) {
-			//if (normals[i-1].transpose()*normals[i] < 0.0) { // Find intersection
+			if (normals[i-1].cross(normals[i])[2] < 0.0) { // Find intersection
 				Eigen::Vector2f minkowski_point = FindIntersection(original_points_[i-1],
 																													original_points_[i],
 																													original_points_[i+1]);
 				minkowski_points_.push_back(minkowski_point);
-				/*
 			} else {  // Add circle
 				std::vector<Eigen::Vector2f> minkowski_points =
 					FindCircle(original_points_[i-1],
@@ -55,19 +52,15 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
 					minkowski_points_.push_back(minkowski_points[i]);
 				}
 			}
-				*/
 		}
 		minkowski_points_.push_back(minkowski_points_.front());
 	}
-	std::cout << original_points_.size() << std::endl;
-	std::cout << minkowski_points_.size() << std::endl << std::endl;
 	return minkowski_points_;
 }  // CalculateMinkowskiSum
 
 Eigen::Vector2f MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
 																								 const Eigen::Vector2f& B,
 																								 const Eigen::Vector2f& C) {
-	radius_ = 1.0;
 	Eigen::Vector2f normal_AB; normal_AB << -((A-B)/(A-B).norm())[1],
 															 ((A-B)/(A-B).norm())[0];
 	Eigen::Vector2f normal_BC; normal_BC << -((B-C)/(B-C).norm())[1],
@@ -81,24 +74,8 @@ Eigen::Vector2f MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
 	float a_num = (d[0] - c[0]) * (a[1] - c[1]) - (d[1] - c[1]) * (a[0] - c[0]);
 	float b_num = (b[0] - a[0]) * (a[1] - c[1]) - (b[1] - a[1]) * (a[0] - c[0]);
 	float denom = (d[1] - c[1]) * (b[0] - a[0]) - (d[0] - c[0]) * (b[1] - a[1]);
-/*
-	std::cout << "A: " << A.transpose() << std::endl;
-	std::cout << "B: " << B.transpose() << std::endl;
-	std::cout << "C: " << C.transpose() << std::endl;
-	std::cout << "n_ab: " << normal_AB.transpose() << std::endl;
-	std::cout << "n_bc: " << normal_BC.transpose() << std::endl;
-	std::cout << "a: " << a.transpose() << std::endl;
-	std::cout << "b: " << b.transpose() << std::endl;
-	std::cout << "c: " << c.transpose() << std::endl;
-	std::cout << "d: " << d.transpose() << std::endl;
-	std::cout << "a_num: " << a_num << std::endl;
-	std::cout << "b_num: " << b_num << std::endl;
-	std::cout << "denom: " << denom << std::endl;
-	std::cout << "P: " << (a + a_num/denom*(b-a).normalized()).transpose() << std::endl;
-	int k;
-	std::cin >> k;
-*/
-	return a + a_num/denom*(b-a).normalized();
+
+	return a + a_num/denom*(b-a);
 }  // FindIntersection
 
 std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A,
@@ -108,19 +85,46 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 															 ((A-B)/(A-B).norm())[0];
 	Eigen::Vector2f normal_BC; normal_BC << -((B-C)/(B-C).norm())[1],
 															 ((B-C)/(B-C).norm())[0];
+	
+	Eigen::Vector2f a2 = B + radius_*normal_AB;
+	Eigen::Vector2f b2 = B + radius_*normal_BC;
 
-	Eigen::Vector2f a = A + radius_*normal_AB;
-	Eigen::Vector2f b = B + radius_*normal_AB;
-	Eigen::Vector2f c = B + radius_*normal_BC;
-	Eigen::Vector2f d = C + radius_*normal_BC;
-
-	float a_num = (d[0] - c[0]) * (a[1] - c[1]) - (d[1] - c[1]) * (a[0] - c[0]);
-	float b_num = (b[0] - a[0]) * (a[1] - c[1]) - (b[1] - a[1]) * (a[0] - c[0]);
-	float denom = (d[1] - c[1]) * (b[0] - a[0]) - (d[0] - c[0]) * (b[1] - a[1]);
+	Eigen::Vector3f a; a << a2[0], a2[1], 0.0;
+	Eigen::Vector3f b; b << b2[0], b2[1], 0.0;
 
 	std::vector<Eigen::Vector2f> points;
-	points.push_back(a + a_num/denom*(b-a).normalized());
-
+	points.reserve(1000);
+	points.push_back(a.head(2));
+	points.push_back(b.head(2));
+	
+	std::vector<Eigen::Vector2f>::iterator it = points.begin();
+	int i = 1;
+	while (i < points.size()) {
+		//std::cout << "size; " << points.size() << std::endl;
+		//std::cout << "i: " << i << std::endl;
+		a << points[i-1][0], points[i-1][1], 0.0;
+		//std::cout << "a: " << a.head(2).transpose() << std::endl;
+		b << points[i][0], points[i][1], 0.0;
+		//std::cout << "b: " << b.head(2).transpose() << std::endl;
+		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
+											(a.normalized()).dot(b.normalized()));
+		//std::cout << "theta: " << theta << std::endl;
+		
+		if (theta > 1.0*M_PI/180.0) { // Split the line
+			//std::cout << "Splitting line" << std::endl;
+			Eigen::Vector2f c;
+			c = (a + 0.5*(b-a)).head(2);
+			//std::cout << "c: " << c.transpose() << std::endl;
+			//std::cout << (B + radius_*(c-B).normalized()).transpose() << std::endl;
+			//int k;
+			//std::cin >> k;
+			points.insert(it+i, B + radius_*(c-B).normalized());
+			//std::cout << "Split segment" << std::endl;
+		} else {
+			i++;
+		}
+	}
+	//std::cout << "Done" << std::endl;
 	return points;
 }  // FindCircle
 

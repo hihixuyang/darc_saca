@@ -7,6 +7,9 @@
 class LidarSegment2d {
 public:
 	LidarSegment2d(void);
+	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list);
+	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
+								 float threshold);
 	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,
 							 const std::vector<float>& range_data);
 	LidarSegment2d(const std::vector<Eigen::Vector2f>& point_list,

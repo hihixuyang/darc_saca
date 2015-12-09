@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
 	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
 
-	float radius = quad.radius() + 0.0282;
+	float radius = quad.radius() + 0.282;
 
 	// Read in the distance threshold for the obstacle segmentation from
 	// the launch file
@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
 				lidar_full_points.segmented_points();
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
-				minkowski_points.CalculateMinkowskiSum();
+				minkowski_points.CalculateMinkowskiSum();			
 			obstacle_list.clear();
 
 			// Store the segmented points for rviz visualization
@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
 			}
-
+			
 		  for (int index = 1; index < lidar_segmented_points.size(); ++index) {
 				// Show segmented points and lines in visualization
 				rviz_point.x = lidar_segmented_points[index][0];
@@ -324,12 +324,6 @@ int main(int argc, char* argv[]) {
 				seg_laser_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				laser_lines.points.push_back(rviz_point);
-				rviz_point.x = minkowski_point_list[index][0];
-				rviz_point.y = minkowski_point_list[index][1];
-				rviz_point.z = 0.1;
-				mink_points.points.push_back(rviz_point);
-				rviz_point.z = 0.0;
-				mink_lines.points.push_back(rviz_point);
 				
 #ifdef ONBOARD_SENSING		
 				// Store segmented lines as obstacles for collision avoidance
@@ -354,6 +348,14 @@ int main(int argc, char* argv[]) {
 #endif
 			}
 
+			for (int index = 1; index < minkowski_point_list.size(); ++index) {
+				rviz_point.x = minkowski_point_list[index][0];
+				rviz_point.y = minkowski_point_list[index][1];
+				rviz_point.z = 0.1;
+				mink_points.points.push_back(rviz_point);
+				rviz_point.z = 0.0;
+				mink_lines.points.push_back(rviz_point);
+			}
       // Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
 			full_laser_points.header.stamp = ros::Time();
