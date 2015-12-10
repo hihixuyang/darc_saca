@@ -17,7 +17,7 @@ public:
 	void set_time_horizon(float time_horizon);
 	Eigen::Vector3f sensing_noise(void);
 	void AvoidCollisions(const Input& desired_input,
-											 std::vector<Obstacle3d>& obstacle_list);
+											 std::vector<Obstacle3d>& obstacle_list, int flag);
 	std::vector<Eigen::Vector3f> InitialDesiredTrajectory(void);
 	std::vector<Eigen::Vector3f> FinalDesiredTrajectory(void);
 	

@@ -13,6 +13,7 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 
 std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
 	if (original_points_.size() > 0) {
+		/*
 		std::vector<Eigen::Vector3f> normals(original_points_.size() - 1);
 		for (int i = 1; i < original_points_.size(); ++i) {
 			Eigen::Vector3f normal;
@@ -54,6 +55,11 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
 			}
 		}
 		minkowski_points_.push_back(minkowski_points_.front());
+		*/
+		RemoveOutliers();
+		for (int i = 0; i < original_points_.size(); ++i) {
+			minkowski_points_.push_back(original_points_[i]);
+		}
 	}
 	return minkowski_points_;
 }  // CalculateMinkowskiSum
@@ -100,31 +106,33 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 	std::vector<Eigen::Vector2f>::iterator it = points.begin();
 	int i = 1;
 	while (i < points.size()) {
-		//std::cout << "i: " << i << std::endl;
 		a << points[i-1][0] - B[0], points[i-1][1] - B[1], 0.0;
 		b << points[i][0] - B[0], points[i][1] - B[1], 0.0;
 		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
 											(a.normalized()).dot(b.normalized()));
-		//std::cout << "a: " << a.transpose() << std::endl;
-		//std::cout << "b: " << b.transpose() << std::endl;
-		//std::cout << "theta: " << theta << std::endl;
-		if (theta > 30.0*M_PI/180.0) { // Split the line
-			//std::cout << "Split" << std::endl;
-			//int k;
-			//std::cin >> k;
+		if (theta > 35.0*M_PI/180.0) { // Split the line
 			Eigen::Vector2f c;
 			c = radius_*(a + 0.5*(b-a)).normalized().head(2);
-			//std::cout << "c: " << c.transpose() << std::endl;
 			points.insert(it+i, B + c);
-			//int k;
-			//std::cin >> k;
 		} else {
 			i++;
 		}
 	}
-	//std::cout << "Done" << std::endl;
 	return points;
 }  // FindCircle
 
+void MinkowskiSum2d::RemoveOutliers(void) {
+	// Go through the original point list to remove any points that are the
+	// end of a narrow channel where the intersection point
+	// Jumps to the other side away from the point at the end of the narrow
+	// channel. When the channel is narrower than the value of 2r then
+	// the point at the end should be an outlier.
+	std::vector<Eigen::Vector2f>::iterator it = original_points_.begin();
+  for (int i = original_points_.size() - 1; i < original_points_.size(); ++i) {
+		std::cout << original_points_[i].transpose() << std::endl;
+	}
+	int k;
+	std::cin >> k;
+}  // RemoveOutliers
 
 

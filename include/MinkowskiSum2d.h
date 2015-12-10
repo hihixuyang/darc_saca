@@ -21,6 +21,7 @@ private:
 	std::vector<Eigen::Vector2f> FindCircle(const Eigen::Vector2f&,
 																					const Eigen::Vector2f&,
 																					const Eigen::Vector2f&);
+	void RemoveOutliers(void);
 };
 
 #endif

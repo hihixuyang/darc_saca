@@ -134,10 +134,10 @@ void SetupMinkowskiPointsVisualization(visualization_msgs::Marker& mink_points,
 	mink_points.id = id;
 	mink_points.type = visualization_msgs::Marker::POINTS;
 	mink_points.action = visualization_msgs::Marker::ADD;
-	mink_points.scale.x = 0.05;
-	mink_points.scale.y = 0.05;
+	mink_points.scale.x = 0.075;
+	mink_points.scale.y = 0.075;
 	mink_points.color.a = 1.0;
-	mink_points.color.r = mink_points.color.g = mink_points.color.b = 1.0;
+  mink_points.color.g = 1.0;
 }
 
 // Show the lines between the Minkowski vertices as a black line
@@ -149,6 +149,7 @@ void SetupMinkowskiLinesVisualization(visualization_msgs::Marker& mink_lines,
 	mink_lines.action = visualization_msgs::Marker::ADD;
 	mink_lines.scale.x = 0.035;
 	mink_lines.color.a = 1.0;
+	mink_lines.color.b = 1.0;
 }
 
 int main(int argc, char* argv[]) {
@@ -208,6 +209,14 @@ int main(int argc, char* argv[]) {
 	if (nh.getParam("/dist_thresh", distance_threshold)) {;}
 	else {
 		ROS_ERROR("Set Distance Threshold");
+		return 0;
+	}
+
+	// Read in if collision avoidance or full manual
+	double pca_enabled;
+	if (nh.getParam("/pca_on", pca_enabled)) {;}
+	else {
+		ROS_ERROR("Set collision avoidance flag");
 		return 0;
 	}
 	
@@ -320,9 +329,6 @@ int main(int argc, char* argv[]) {
 				mink_lines.points.push_back(rviz_point);
 			
 #ifdef ONBOARD_SENSING
-				//bottom_sonar_dist = -quad.true_position()[2] + radius;
-				//top_sonar_dist = quad.true_position()[2] - radius;
-				
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
 				tr << minkowski_point_list[index][0],
@@ -398,7 +404,8 @@ int main(int argc, char* argv[]) {
 #endif
 		
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		quad.AvoidCollisions(u_curr, obstacle_list);
+		nh.getParam("/pca_on", pca_enabled);
+		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
 		quad.ApplyInput();
 
 		// Visualization trajectories

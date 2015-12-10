@@ -42,7 +42,8 @@ Eigen::Vector3f QuadrotorACA3d::sensing_noise(void) {
 }  // sensing_noise
 
 void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
-																		 std::vector<Obstacle3d>& obstacle_list) {
+																		 std::vector<Obstacle3d>& obstacle_list,
+                                     int flag) {
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
@@ -50,6 +51,9 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 		ForwardPrediction();
 		if (loop_index == 0) {
 			p_star_initial_ = p_star_;
+		}
+		if (!flag) {
+			break;
 		}
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -59,8 +63,8 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 			break;
 		CalculateDeltaU();
 		ClearHalfplanes();
-	} 
-	u_ = desired_u_ + delta_u_;
+	}
+		u_ = desired_u_ + delta_u_;
 }  // AvoidCollision
 
 std::vector<Eigen::Vector3f> QuadrotorACA3d::InitialDesiredTrajectory(void) {
