@@ -223,7 +223,6 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 			// where possible
 			bool p0 = obstacle_list[index_list[plane_index]].normal().transpose() *
 				(current_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) > 0.0;
-				//(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
 			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
 				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
 			if (p0 && p1) {
