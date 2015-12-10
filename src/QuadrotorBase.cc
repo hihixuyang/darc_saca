@@ -32,7 +32,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 		   0,   0,   0.9;
 
 	float max_climb_rate = 1.0;
-	float kp1 = 10.0;
+	float kp1 = 20.0;
 	Eigen::Vector3f T(0,
 										0,
 										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));

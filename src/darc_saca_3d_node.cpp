@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_3d_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate(50);
-
+	
 	// desired_u and desired_yaw comes from input mapping node
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, u_callback);
 	ros::Subscriber yaw_sub = nh.subscribe("desired_yaw", 1, yaw_callback);
@@ -194,6 +194,23 @@ int main(int argc, char* argv[]) {
 	ros::Publisher mink_line_pub =
 		nh.advertise<visualization_msgs::Marker>("mink_line_vis", 0);
 
+	// Read in the value of hte time horizon from the launch file
+	double time_horizon;
+	if (nh.getParam("/time_horizon", time_horizon)) {;}
+	else {
+		ROS_ERROR("Set Time Horizon");
+		return 0;
+	}
+	
+	// Read in the distance threshold for the obstacle segmentation from
+	// the launch file
+	double distance_threshold;
+	if (nh.getParam("/dist_thresh", distance_threshold)) {;}
+	else {
+		ROS_ERROR("Set Distance Threshold");
+		return 0;
+	}
+	
 	visualization_msgs::Marker quad_dummy;
 	SetupQuadVisualization(quad_dummy, 0);
 	visualization_msgs::Marker initial_trajectory_lines;
@@ -211,13 +228,7 @@ int main(int argc, char* argv[]) {
 	visualization_msgs::Marker mink_lines;
 	SetupMinkowskiLinesVisualization(mink_lines, 7);
 
-	// Read in the value of hte time horizon from the launch file
-	double time_horizon;
-	if (nh.getParam("/time_horizon", time_horizon)) {;}
-	else {
-		ROS_ERROR("Set Time Horizon");
-		return 0;
-	}
+	
 	// Setup the class instance of the quadrotor for collision avoidance
 	QuadrotorACA3d quad(time_horizon);
 	
@@ -234,39 +245,30 @@ int main(int argc, char* argv[]) {
 	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
 
-	float radius = 1.25*quad.radius();
-
-	// Read in the distance threshold for the obstacle segmentation from
-	// the launch file
-	double distance_threshold;
-	if (nh.getParam("/dist_thresh", distance_threshold)) {;}
-	else {
-		ROS_ERROR("Set Distance Threshold");
-		return 0;
-	}
+	float radius = quad.radius();
 
 	std::vector<Obstacle3d> obstacle_list;
 	while(ros::ok()) {
 		ros::spinOnce();
-
+		
 		// Only process the lidar vertices if new data is received from
 		// the lidar node, preventing extra computation
 		if (new_data) {
-			new_data = false;
-			// Read points in 2d space for segmentation
+			new_data = false;  // Clear data flag to prevent repeated calculations
+			
+#ifdef ONBOARD_SENSING
+			obstacle_list.clear();
+#endif
+
+			// Full 2d points of the laser for split-and-merge
 			std::vector<Eigen::Vector2f> full_point_list(laser_in.ranges.size());
 
-			// Save range data for clustering
+			// Full list of distances for clustering 
 			std::vector<float> range_list(laser_in.ranges.size());
-
-			// Clear points for visualization
+			
 			full_laser_points.points.clear();
-
-			// Set relative angle of the lidar
 			float theta_rel = laser_in.angle_min - quad.est_yaw();
 			
-			// Loop over the data and save the lidar points into the list
-			// for segmentation and the list for visualization
 			Eigen::Vector2f tmp_point;
 			for (int data_index = 0; data_index < laser_in.ranges.size();
 					 ++data_index) {
@@ -300,61 +302,73 @@ int main(int argc, char* argv[]) {
 			mink_points.points.clear();
 			mink_lines.points.clear();
 			geometry_msgs::Point rviz_point;
-			if (lidar_segmented_points.size() > 0) {
-				rviz_point.x = lidar_segmented_points[0][0];
-				rviz_point.y = lidar_segmented_points[0][1];
-				rviz_point.z = 0.05;
-				seg_laser_points.points.push_back(rviz_point);
-				rviz_point.z = 0.0;
-				laser_lines.points.push_back(rviz_point);
-				rviz_point.x = minkowski_point_list[0][0];
-				rviz_point.y = minkowski_point_list[0][1];
-				rviz_point.z = 0.05;
-				mink_points.points.push_back(rviz_point);
-				rviz_point.z = 0.0;
-				mink_lines.points.push_back(rviz_point);
-			}
-			
-		  for (int index = 1; index < lidar_segmented_points.size(); ++index) {
-				// Show segmented points and lines in visualization
+			for (int index = 0; index < lidar_segmented_points.size(); ++index) {
 				rviz_point.x = lidar_segmented_points[index][0];
 				rviz_point.y = lidar_segmented_points[index][1];
 				rviz_point.z = 0.05;
 				seg_laser_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				laser_lines.points.push_back(rviz_point);
-				
-#ifdef ONBOARD_SENSING		
-				// Store segmented lines as obstacles for collision avoidance
-				Eigen::Vector3f tr, br, tl, bl;
-				tr << lidar_segmented_points[index][0],
-					lidar_segmented_points[index][1],
-					top_sonar_dist;
-				br << lidar_segmented_points[index][0],
-					lidar_segmented_points[index][1],
-					bottom_sonar_dist;
-				tl << lidar_segmented_points[index - 1][0],
-					lidar_segmented_points[index - 1][1],
-					top_sonar_dist;
-				bl << lidar_segmented_points[index - 1][0],
-					lidar_segmented_points[index - 1][1],
-					bottom_sonar_dist;
-				Eigen::Vector3f normal = (tr - br).cross(bl - br);
-				Obstacle3d w_a(tr, br, bl, normal, radius);
-				Obstacle3d w_b(tr, tl, bl, normal, radius);
-				obstacle_list.push_back(w_a);
-				obstacle_list.push_back(w_b);
-#endif
 			}
 
-			for (int index = 1; index < minkowski_point_list.size(); ++index) {
+			for (int index = 0; index < minkowski_point_list.size(); ++index) {
 				rviz_point.x = minkowski_point_list[index][0];
 				rviz_point.y = minkowski_point_list[index][1];
-				rviz_point.z = 0.1;
+				rviz_point.z = 0.05;
 				mink_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
+			
+#ifdef ONBOARD_SENSING
+				//bottom_sonar_dist = -quad.true_position()[2] + radius;
+				//top_sonar_dist = quad.true_position()[2] - radius;
+				
+				// Store segmented lines as obstacles for collision avoidance
+				Eigen::Vector3f tr, br, tl, bl;
+				tr << minkowski_point_list[index][0],
+					    minkowski_point_list[index][1],
+					    top_sonar_dist;
+				br << minkowski_point_list[index][0],
+					    minkowski_point_list[index][1],
+					    bottom_sonar_dist;
+				tl << minkowski_point_list[index - 1][0],
+					    minkowski_point_list[index - 1][1],
+    					top_sonar_dist;
+				bl << minkowski_point_list[index - 1][0],
+					    minkowski_point_list[index - 1][1],
+					    bottom_sonar_dist;
+				Eigen::Vector3f normal = ((tr - br).cross(bl - br)).normalized();
+				Obstacle3d w_a(tr, br, bl, normal);
+				Obstacle3d w_b(tr, tl, bl, normal);
+				obstacle_list.push_back(w_a);
+				obstacle_list.push_back(w_b);
 			}
+
+			bottom_sonar_dist += radius;
+			top_sonar_dist -= radius;
+      // also store the "floor" and "ceiling" as a large obstacles
+			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
+			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
+			Eigen::Vector3f tl; tl <<  50.0,  50.0, bottom_sonar_dist;
+			Eigen::Vector3f bl; bl << -50.0,  50.0, bottom_sonar_dist;
+      Eigen::Vector3f normal;
+      normal << 0,0,1;
+			Obstacle3d floor_a(tr, br, bl, normal);
+			Obstacle3d floor_b(tr, tl, bl, normal);
+			obstacle_list.push_back(floor_a);
+			obstacle_list.push_back(floor_b);
+			tr <<  50.0,  50.0, top_sonar_dist - radius;
+			br << -50.0,  50.0, top_sonar_dist - radius;
+			tl <<  50.0, -50.0, top_sonar_dist - radius;
+			bl << -50.0, -50.0, top_sonar_dist - radius;
+      normal << 0,0,-1;
+			Obstacle3d ceil_a(tr, br, bl, normal);
+			Obstacle3d ceil_b(tr, tl, bl, normal);
+			obstacle_list.push_back(ceil_a);
+			obstacle_list.push_back(ceil_b);
+#else
+			}
+#endif
       // Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
 			full_laser_points.header.stamp = ros::Time();
@@ -367,27 +381,8 @@ int main(int argc, char* argv[]) {
 			mink_line_pub.publish(mink_lines);
 		}
 
-#ifdef ONBOARD_SENSING
-		// also store the "floor" and "ceiling" as a large obstacles
-		Eigen::Vector3f tr; tr << 10.0, -10.0, bottom_sonar_dist;
-		Eigen::Vector3f br; br << -10.0, -10.0, bottom_sonar_dist;
-		Eigen::Vector3f tl; tl << 10.0,  10.0, bottom_sonar_dist;
-		Eigen::Vector3f bl; bl << -10.0,  10.0, bottom_sonar_dist;
-		Eigen::Vector3f normal = (tr - br).cross(bl - br);
-		Obstacle3d floor_a(tr, br, bl, normal, radius);
-		Obstacle3d floor_b(tr, tl, bl, normal, radius);
-		obstacle_list.push_back(floor_a);
-		obstacle_list.push_back(floor_b);
-		tr <<  10.0,  10.0, top_sonar_dist;
-		br << -10.0,  10.0, top_sonar_dist;
-		tl <<  10.0, -10.0, top_sonar_dist;
-		bl << -10.0, -10.0, top_sonar_dist;
-		normal << (tr - br).cross(bl - br);
-		Obstacle3d ceil_a(tr, br, bl, normal, radius);
-		Obstacle3d ceil_b(tr, tl, bl, normal, radius);
-		obstacle_list.push_back(ceil_a);
-		obstacle_list.push_back(ceil_b);
-#else
+#ifndef ONBOARD_SENSING
+	  obstacle_list.clear();
 		Eigen::VectorXf p = quad.true_position();
 		for (int i = 0; i < 5; ++i) {
 			Eigen::Vector3f noise = quad.sensing_noise();
@@ -395,9 +390,8 @@ int main(int argc, char* argv[]) {
 			Eigen::Vector3f br = v[i].br -p + quad.sensing_noise();
 			Eigen::Vector3f tl = v[i].tl -p + quad.sensing_noise();
 			Eigen::Vector3f bl = v[i].bl -p + quad.sensing_noise();
-			Eigen::Vector3f normal = (tr - br).cross(bl - br);
-			Obstacle3d w_a(tr, br, bl, normal, radius);
-			Obstacle3d w_b(tr, tl, bl, normal, radius);
+			Obstacle3d w_a(tr, br, bl);
+			Obstacle3d w_b(bl, tl, tr);
 			obstacle_list.push_back(w_a);
 			obstacle_list.push_back(w_b);
 		}

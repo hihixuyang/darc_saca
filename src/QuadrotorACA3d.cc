@@ -29,7 +29,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
-	Z_ = 0.01*0.01*Eigen::Matrix3f::Identity();
+	Z_ = 0.025*0.025*Eigen::Matrix3f::Identity();
 	//Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
@@ -116,7 +116,7 @@ QuadrotorACA3d::SensingUncertaintyProjection(const Position& normal) {
 }  // SensingUncertaintyProjection
 
 float QuadrotorACA3d::sigma(const Position& normal) {
-	return 0.0; // REMOVE AFTER DEBUGGING
+	//return 0.0; // REMOVE AFTER DEBUGGING
   return VarianceProjection(Mtau_.block(0,0,3,3) + Z_, normal);
 }  // sigma
 
@@ -175,7 +175,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
 						 										(pos_colliding - p_star_.back() +
-																 sigma(normal)*normal))	+ 0.0002f) / a.norm();
+																 sigma(normal)*normal))	+ 0.02f) / a.norm();
 	a.normalize();
 	
 	Plane tmp_plane;
@@ -198,10 +198,10 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	std::vector<int> potential_colliding_obstacle_indices;
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
-		//if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-		//			&& obstacle_list[obstacle_index].IsTranslatedSeeable(Position::Zero())) {
+		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
+					&& obstacle_list[obstacle_index].IsTranslatedSeeable(Position::Zero())) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
-		//}
+		}
 	}
 	return potential_colliding_obstacle_indices;
 }  // FindPotentialCollidingPlanes
@@ -226,7 +226,6 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 				//(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
 			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
 				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
-			
 			if (p0 && p1) {
 				// Check the segment for a collisions	
 				if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(

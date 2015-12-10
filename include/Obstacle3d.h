@@ -8,9 +8,8 @@ class Obstacle3d {
 public:
 	Obstacle3d(void);
 	Obstacle3d(const Eigen::Vector3f& v0, const Eigen::Vector3f& v1,
-						 const Eigen::Vector3f& v2, const Eigen::Vector3f& normal,
-						 float radius);
-
+						 const Eigen::Vector3f& v2, const Eigen::Vector3f& normal);
+	
 	// Accessors
 	Eigen::Vector3f true_vertices(int index);
 	Eigen::Vector3f translated_vertices(int index);

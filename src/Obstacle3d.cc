@@ -6,8 +6,7 @@ Obstacle3d::Obstacle3d(void) {
 }  // Obstacle3d
 
 Obstacle3d::Obstacle3d(const Eigen::Vector3f& v0, const Eigen::Vector3f& v1,
-											 const Eigen::Vector3f& v2, const Eigen::Vector3f& normal,
-											 float radius) {
+											 const Eigen::Vector3f& v2, const Eigen::Vector3f& normal) {
 	true_intersection_calculated_ = translated_intersection_calculated_ =
 		noise_intersection_calculated_ = false;
 	
@@ -17,10 +16,9 @@ Obstacle3d::Obstacle3d(const Eigen::Vector3f& v0, const Eigen::Vector3f& v1,
 
 	normal_ = normal.normalized();
 
-	// Naive Minkowksi sum
-	Eigen::Vector3f v0_tilde = v0 + radius*normal_;
-	Eigen::Vector3f v1_tilde = v1 + radius*normal_;
-	Eigen::Vector3f v2_tilde = v2 + radius*normal_;
+	Eigen::Vector3f v0_tilde = v0; // + radius*normal_;
+	Eigen::Vector3f v1_tilde = v1; // + radius*normal_;
+	Eigen::Vector3f v2_tilde = v2; // + radius*normal_;
 
 	translated_vertices_.push_back(v0_tilde);
 	translated_vertices_.push_back(v1_tilde);

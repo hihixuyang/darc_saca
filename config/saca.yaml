@@ -1,2 +1,3 @@
 time_horizon: 1.5
 dist_thresh: 0.1
+rviz_on: 1
