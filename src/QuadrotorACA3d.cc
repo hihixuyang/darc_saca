@@ -30,7 +30,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 
 void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = 0.01*0.01*Eigen::Matrix3f::Identity();
-	Z_ = Eigen::Matrix3f::Zero();
+	//Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
 void QuadrotorACA3d::set_time_horizon(float time_horizon) {
@@ -198,10 +198,10 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
 	std::vector<int> potential_colliding_obstacle_indices;
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
-		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-					&& obstacle_list[obstacle_index].IsTrueSeeable(Position::Zero())) {
+		//if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
+		//			&& obstacle_list[obstacle_index].IsTranslatedSeeable(Position::Zero())) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
-		}
+		//}
 	}
 	return potential_colliding_obstacle_indices;
 }  // FindPotentialCollidingPlanes
@@ -222,7 +222,8 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 			// First check for the segments dot products to avoid matrix inversion
 			// where possible
 			bool p0 = obstacle_list[index_list[plane_index]].normal().transpose() *
-				(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
+				(current_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) > 0.0;
+				//(current_position - obstacle_list[index_list[plane_index]].true_vertices(0)) > 0.0;
 			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
 				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
 			

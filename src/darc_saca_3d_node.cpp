@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
 	srand(time(NULL));
 	ROS_ERROR("STARTING LOOP");
 
-	float radius = quad.radius() + 0.282;
+	float radius = 1.25*quad.radius();
 
 	// Read in the distance threshold for the obstacle segmentation from
 	// the launch file
@@ -292,8 +292,7 @@ int main(int argc, char* argv[]) {
 				lidar_full_points.segmented_points();
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
-				minkowski_points.CalculateMinkowskiSum();			
-			obstacle_list.clear();
+				minkowski_points.CalculateMinkowskiSum();
 
 			// Store the segmented points for rviz visualization
 			seg_laser_points.points.clear();

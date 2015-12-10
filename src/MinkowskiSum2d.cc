@@ -86,40 +86,38 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 	Eigen::Vector2f normal_BC; normal_BC << -((B-C)/(B-C).norm())[1],
 															 ((B-C)/(B-C).norm())[0];
 	
-	Eigen::Vector2f a2 = B + radius_*normal_AB;
-	Eigen::Vector2f b2 = B + radius_*normal_BC;
+	Eigen::Vector2f a2 = radius_*normal_AB;
+	Eigen::Vector2f b2 = radius_*normal_BC;
 
 	Eigen::Vector3f a; a << a2[0], a2[1], 0.0;
 	Eigen::Vector3f b; b << b2[0], b2[1], 0.0;
 
 	std::vector<Eigen::Vector2f> points;
 	points.reserve(1000);
-	points.push_back(a.head(2));
-	points.push_back(b.head(2));
+	points.push_back(B + a.head(2));
+	points.push_back(B + b.head(2));
 	
 	std::vector<Eigen::Vector2f>::iterator it = points.begin();
 	int i = 1;
 	while (i < points.size()) {
-		//std::cout << "size; " << points.size() << std::endl;
 		//std::cout << "i: " << i << std::endl;
-		a << points[i-1][0], points[i-1][1], 0.0;
-		//std::cout << "a: " << a.head(2).transpose() << std::endl;
-		b << points[i][0], points[i][1], 0.0;
-		//std::cout << "b: " << b.head(2).transpose() << std::endl;
+		a << points[i-1][0] - B[0], points[i-1][1] - B[1], 0.0;
+		b << points[i][0] - B[0], points[i][1] - B[1], 0.0;
 		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
 											(a.normalized()).dot(b.normalized()));
+		//std::cout << "a: " << a.transpose() << std::endl;
+		//std::cout << "b: " << b.transpose() << std::endl;
 		//std::cout << "theta: " << theta << std::endl;
-		
-		if (theta > 1.0*M_PI/180.0) { // Split the line
-			//std::cout << "Splitting line" << std::endl;
-			Eigen::Vector2f c;
-			c = (a + 0.5*(b-a)).head(2);
-			//std::cout << "c: " << c.transpose() << std::endl;
-			//std::cout << (B + radius_*(c-B).normalized()).transpose() << std::endl;
+		if (theta > 30.0*M_PI/180.0) { // Split the line
+			//std::cout << "Split" << std::endl;
 			//int k;
 			//std::cin >> k;
-			points.insert(it+i, B + radius_*(c-B).normalized());
-			//std::cout << "Split segment" << std::endl;
+			Eigen::Vector2f c;
+			c = radius_*(a + 0.5*(b-a)).normalized().head(2);
+			//std::cout << "c: " << c.transpose() << std::endl;
+			points.insert(it+i, B + c);
+			//int k;
+			//std::cin >> k;
 		} else {
 			i++;
 		}
