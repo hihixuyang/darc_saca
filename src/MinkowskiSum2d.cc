@@ -11,10 +11,11 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 	radius_ = radius;
 }  // MinkowskiSum2d
 
-std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(void) {
+std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(int intersection_flag) {
 	RemoveOutliers();
 	CalculateMinkowskiSum();
-	RemoveIntersections();
+	if (intersection_flag)
+		RemoveIntersections();
 	return minkowski_points_;
 }  // ReturnMinkowskiSum
 
@@ -34,7 +35,7 @@ void MinkowskiSum2d::CalculateMinkowskiSum(void) {
 			Eigen::Vector2f minkowski_point = FindIntersection(original_points_[original_points_.size()-2],
 																												 original_points_[0],
 																												 original_points_[1]);
-			minkowski_points_.push_back(minkowski_point);
+			minkowski_points_.push_back(minkowski_point);	
 		} else {  // Add Circle
 		std::vector<Eigen::Vector2f> minkowski_points =
 				FindCircle(original_points_[original_points_.size()-2],
@@ -110,7 +111,7 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 		b << points[i][0] - B[0], points[i][1] - B[1], 0.0;
 		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
 											(a.normalized()).dot(b.normalized()));
-		if (theta > 90.0*M_PI/180.0) { // Split the line
+		if (theta > 30.0*M_PI/180.0) { // Split the line
 			Eigen::Vector2f c;
 			c = radius_*(a + 0.5*(b-a)).normalized().head(2);
 			points.insert(it+i, B + c);
@@ -162,21 +163,36 @@ void MinkowskiSum2d::RemoveOutliers(void) {
 // Takes the solved Minkowski difference (without outliers) and removes
 // any intersections that may have occurred between lines
 void MinkowskiSum2d::RemoveIntersections(void) {
-	std::vector<Eigen::Vector2f>::iterator it = minkowski_points_.begin();
-	Eigen::Vector2f intersection_point;
-	for (int i = 1; i < minkowski_points_.size(); ++i) {
-		for (int j = i + 1; j < minkowski_points_.size(); ++j) {
-			if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
-													 minkowski_points_[j - 1], minkowski_points_[j],
-													 intersection_point) ) {
-				minkowski_points_.erase(it + (i + 1), it + (j - 1));
-				minkowski_points_.insert(it + (i + 1), intersection_point);
-				//i = 1;
-				break;
+	if (minkowski_points_.size() > 0) {
+		std::vector<Eigen::Vector2f>::iterator it = minkowski_points_.begin();
+		//std::cout << "size: " << minkowski_points_.size() << std::endl;
+		Eigen::Vector2f intersection_point;
+		for (int i = 1; i < minkowski_points_.size() - 1; ++i) {
+			//std::cout << "i: " << i << ", j: ";
+			for (int j = i + 2;
+					 ((i == 1 && j < minkowski_points_.size() - 1) || (i!= 1 && j < minkowski_points_.size()));
+					 ++j) {
+				//std::cout << j << ", ";
+				if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
+														 minkowski_points_[j - 1], minkowski_points_[j],
+														 intersection_point) ) {
+					//std::cout << std::endl << "Intersection Found" << std::endl;
+					//int k;
+					//std::cin >> k;
+					//std::cout << "i: " << i << "j: " << j << std::endl;
+					//std::cout << minkowski_points_.size() << std::endl;
+					minkowski_points_.erase(it + i, it + j);
+					//std::cout << minkowski_points_.size() << std::endl;
+					minkowski_points_.insert(it + i, intersection_point);
+					//std::cout << minkowski_points_.size() << std::endl;
+					//std::cin >> k;
+					i = 1;
+					break;
+				}
 			}
+			//std::cout << std::endl;
 		}
-	}
-				
+	}		
 }  // RemoveIntersections
 
 // Returns true if an intersection between lines AB and CD occurs
@@ -185,14 +201,14 @@ bool MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
 																			const Eigen::Vector2f& C,
 																			const Eigen::Vector2f& D,
 																			Eigen::Vector2f& P) {
-	float t_num = (A-C)[0]*(D-C)[1] - (A-C)[1]*(D-C)[0];
+	float t_num = (A[0]-C[0])*(D[1]-C[1]) - (A[1]-C[1])*(D[0]-C[0]);
 	float u_num = (A-C)[0]*(B-A)[1] - (A-C)[1]*(B-A)[0];
 	float denom = (D-C)[0]*(B-A)[1] - (D-C)[1]*(B-A)[0];
 
 	float t = t_num/denom;
 	float u = u_num/denom;
-
-	if ((0 < t && t < 1) && (0 < u && u < 1)) {
+	float eps = 0.001;
+	if ((eps < t && t < 1-eps) && (eps < u && u < 1-eps)) {
 		P << A + t*(B-A);
 		return true;
 	}

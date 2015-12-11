@@ -37,7 +37,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										0,
 										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
 	
-	float max_angle = 30.0f*M_PI/180.0f;
+	float max_angle = 15.0f*M_PI/180.0f;
 	float max_yaw_rate = 45.0f*M_PI/180.0f;
 	float kp2 = 15.1;
 	float kd  = 2.5;

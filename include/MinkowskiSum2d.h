@@ -8,7 +8,7 @@ class MinkowskiSum2d {
 public:
 	MinkowskiSum2d(void);
 	MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in, float radius);
-	std::vector<Eigen::Vector2f> ReturnMinkowskiSum(void);
+	std::vector<Eigen::Vector2f> ReturnMinkowskiSum(int = 1);
 		
 	
 private:

@@ -375,6 +375,7 @@ int main(int argc, char* argv[]) {
 #else
 			}
 #endif
+			
       // Publish the rviz variables for the lidar
 			quad_pub.publish(quad_dummy);
 			full_laser_points.header.stamp = ros::Time();
@@ -385,6 +386,8 @@ int main(int argc, char* argv[]) {
 			line_pub.publish(laser_lines);
 			mink_point_pub.publish(mink_points);
 			mink_line_pub.publish(mink_lines);
+
+
 		}
 
 #ifndef ONBOARD_SENSING
