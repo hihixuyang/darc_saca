@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
 				lidar_full_points.segmented_points();
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
-				minkowski_points.CalculateMinkowskiSum();
+				minkowski_points.ReturnMinkowskiSum();
 			obstacle_list.clear();
 
 			// Store the segmented points for rviz visualization

@@ -11,10 +11,15 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 	radius_ = radius;
 }  // MinkowskiSum2d
 
-std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
-	if (original_points_.size() > 0) {
-		RemoveOutliers();
+std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(void) {
+	RemoveOutliers();
+	CalculateMinkowskiSum();
+	RemoveIntersections();
+	return minkowski_points_;
+}  // ReturnMinkowskiSum
 
+void MinkowskiSum2d::CalculateMinkowskiSum(void) {
+	if (original_points_.size() > 0) {
 		std::vector<Eigen::Vector3f> normals(original_points_.size() - 1);
 		for (int i = 1; i < original_points_.size(); ++i) {
 			Eigen::Vector3f normal;
@@ -56,9 +61,7 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::CalculateMinkowskiSum(void) {
 			}
 		}
 		minkowski_points_.push_back(minkowski_points_.front());
-
 	}
-	return minkowski_points_;
 }  // CalculateMinkowskiSum
 
 Eigen::Vector2f MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
@@ -107,7 +110,7 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 		b << points[i][0] - B[0], points[i][1] - B[1], 0.0;
 		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
 											(a.normalized()).dot(b.normalized()));
-		if (theta > 35.0*M_PI/180.0) { // Split the line
+		if (theta > 90.0*M_PI/180.0) { // Split the line
 			Eigen::Vector2f c;
 			c = radius_*(a + 0.5*(b-a)).normalized().head(2);
 			points.insert(it+i, B + c);
@@ -118,72 +121,82 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 	return points;
 }  // FindCircle
 
+// Go through the original point list to remove any points that are the
+// end of a narrow channel where the intersection point
+// Jumps to the other side away from the point at the end of the narrow
+// channel. When the channel is narrower than the value of 2r then
+// the point at the end should be an outlier.
 void MinkowskiSum2d::RemoveOutliers(void) {
-	// Go through the original point list to remove any points that are the
-	// end of a narrow channel where the intersection point
-	// Jumps to the other side away from the point at the end of the narrow
-	// channel. When the channel is narrower than the value of 2r then
-	// the point at the end should be an outlier.
-	original_points_.pop_back();
-	std::vector<int> indices(original_points_.size());
-	for (int i = 0; i < indices.size(); ++i) {
-		indices[i] = i;
+	if (original_points_.size() > 0) {
+		original_points_.pop_back();
+		std::vector<Eigen::Vector2f>::iterator it = original_points_.begin();
+		Eigen::Vector3f A,B,C;
+		Eigen::Vector3f n_ab, n_bc;
+		for (int i = 0; i < original_points_.size(); ++i) {
+			// If first point, compare to end
+			if (i == 0) {
+				A << original_points_.back()[0], original_points_.back()[1], 0;
+			} else {
+				A << original_points_[i - 1][0], original_points_[i - 1][1], 0;
+			}
+			B << original_points_[i][0], original_points_[i][1], 0;
+			if (i == original_points_.size() - 1) {
+				C << original_points_.front()[0], original_points_.front()[1], 0;
+			} else {
+				C << original_points_[i + 1][0], original_points_[i + 1][1], 0;
+			}
+			n_ab << -(A-B)[1], (A-B)[0], 0;
+			n_ab.normalize();
+			n_bc << -(B-C)[1], (B-C)[0], 0;
+			n_bc.normalize();
+			if (n_ab[0]*n_bc[1] - n_ab[1]*n_bc[0] < 0.0 &&
+					((A + radius_*n_ab - B).cross(C-B))[2] < 0.0 ) {
+				original_points_.erase(it + i);
+				i = 0;
+			}
+		}
+		original_points_.push_back(original_points_.front());
 	}
-	
-	std::vector<Eigen::Vector2f>::iterator it = original_points_.begin();
-	std::vector<int>::iterator it_two = indices.begin();
-	Eigen::Vector3f A,B,C;
-	Eigen::Vector3f n_ab, n_bc;
-  for (int i = 0; i < original_points_.size(); ++i) {
-		// If first point, compare to end
-		if (i == 0) {
-			A << original_points_.back()[0], original_points_.back()[1], 0;
-			//std::cout << "A: " << indices.back() << ", ";
-		} else {
-			A << original_points_[i - 1][0], original_points_[i - 1][1], 0;
-			//std::cout << "A: " << indices[i - 1] << ", ";
-		}
-		B << original_points_[i][0], original_points_[i][1], 0;
-		//std::cout << "B: " << indices[i] << ", ";
-		if (i == original_points_.size() - 1) {
-			C << original_points_.front()[0], original_points_.front()[1], 0;
-			//std::cout << "C: " << indices.front() << std::endl;
-		} else {
-			C << original_points_[i + 1][0], original_points_[i + 1][1], 0;
-			//std::cout << "C: " << indices[i + 1] << std::endl;
-		}
-		n_ab << -(A-B)[1], (A-B)[0], 0;
-		n_ab.normalize();
-		n_bc << -(B-C)[1], (B-C)[0], 0;
-		n_bc.normalize();
-		//std::cout << std::endl << "i: " << i << std::endl;
-		if ( (n_ab.cross(n_bc))[2] < 0.0 &&
-				 ((A + radius_*n_ab - B).cross(C-B))[2] < 0.0 ) {
-			/*
-			std::cout << "REMOVE" << std::endl;
-			std::cout << "n_ab: " << n_ab.transpose() << std::endl;
-			std::cout << "A: " << A.head(2).transpose() << std::endl;
-			std::cout << "B: " << B.head(2).transpose() << std::endl;
-			std::cout << "C: " << C.head(2).transpose() << std::endl;
-			std::cout << "r: " << radius_ << std::endl;
-			std::cout << "A + rn: " << (A + radius_*n_ab).head(2).transpose() << std::endl;
-			*/
-			original_points_.erase(it + i);
-			indices.erase(it_two + i);
-			i = 0;
-		}
-		/*
-		for (int j = 0; j < original_points_.size(); ++j) {
-			std::cout << indices[j] << ", ";
-		}
-		std::cout << std::endl;
-		*/
-	}
-	/*
-	int k;
-	std::cin >> k;
-	*/
-	original_points_.push_back(original_points_.front());
 }  // RemoveOutliers
 
+// Takes the solved Minkowski difference (without outliers) and removes
+// any intersections that may have occurred between lines
+void MinkowskiSum2d::RemoveIntersections(void) {
+	std::vector<Eigen::Vector2f>::iterator it = minkowski_points_.begin();
+	Eigen::Vector2f intersection_point;
+	for (int i = 1; i < minkowski_points_.size(); ++i) {
+		for (int j = i + 1; j < minkowski_points_.size(); ++j) {
+			if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
+													 minkowski_points_[j - 1], minkowski_points_[j],
+													 intersection_point) ) {
+				minkowski_points_.erase(it + (i + 1), it + (j - 1));
+				minkowski_points_.insert(it + (i + 1), intersection_point);
+				//i = 1;
+				break;
+			}
+		}
+	}
+				
+}  // RemoveIntersections
 
+// Returns true if an intersection between lines AB and CD occurs
+bool MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
+																			const Eigen::Vector2f& B,
+																			const Eigen::Vector2f& C,
+																			const Eigen::Vector2f& D,
+																			Eigen::Vector2f& P) {
+	float t_num = (A-C)[0]*(D-C)[1] - (A-C)[1]*(D-C)[0];
+	float u_num = (A-C)[0]*(B-A)[1] - (A-C)[1]*(B-A)[0];
+	float denom = (D-C)[0]*(B-A)[1] - (D-C)[1]*(B-A)[0];
+
+	float t = t_num/denom;
+	float u = u_num/denom;
+
+	if ((0 < t && t < 1) && (0 < u && u < 1)) {
+		P << A + t*(B-A);
+		return true;
+	}
+	return false;
+}  // TestIntersection
+ 
+	
