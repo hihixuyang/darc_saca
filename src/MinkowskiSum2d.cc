@@ -11,10 +11,10 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 	radius_ = radius;
 }  // MinkowskiSum2d
 
-std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(int intersection_flag) {
+std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(int flag) {
 	RemoveOutliers();
 	CalculateMinkowskiSum();
-	if (intersection_flag)
+	if (flag)
 		RemoveIntersections();
 	return minkowski_points_;
 }  // ReturnMinkowskiSum
@@ -32,9 +32,9 @@ void MinkowskiSum2d::CalculateMinkowskiSum(void) {
 		
 		// First check between first point and last point
 		if (normals.back().cross(normals.front())[2] < 0.0) { // Find Intersection
-			Eigen::Vector2f minkowski_point = FindIntersection(original_points_[original_points_.size()-2],
-																												 original_points_[0],
-																												 original_points_[1]);
+			Eigen::Vector2f minkowski_point =
+				FindIntersection(original_points_[original_points_.size()-2],
+												 original_points_[0], original_points_[1]);
 			minkowski_points_.push_back(minkowski_point);	
 		} else {  // Add Circle
 		std::vector<Eigen::Vector2f> minkowski_points =
@@ -170,7 +170,8 @@ void MinkowskiSum2d::RemoveIntersections(void) {
 		for (int i = 1; i < minkowski_points_.size() - 1; ++i) {
 			//std::cout << "i: " << i << ", j: ";
 			for (int j = i + 2;
-					 ((i == 1 && j < minkowski_points_.size() - 1) || (i!= 1 && j < minkowski_points_.size()));
+					 ((i == 1 && j < minkowski_points_.size() - 1) ||
+						(i!= 1 && j < minkowski_points_.size()));
 					 ++j) {
 				//std::cout << j << ", ";
 				if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
@@ -202,12 +203,12 @@ bool MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
 																			const Eigen::Vector2f& D,
 																			Eigen::Vector2f& P) {
 	float t_num = (A[0]-C[0])*(D[1]-C[1]) - (A[1]-C[1])*(D[0]-C[0]);
-	float u_num = (A-C)[0]*(B-A)[1] - (A-C)[1]*(B-A)[0];
-	float denom = (D-C)[0]*(B-A)[1] - (D-C)[1]*(B-A)[0];
+	float u_num = (A[0]-C[0])*(B[1]-A[1]) - (A[1]-C[1])*(B[0]-A[0]);
+	float denom = (D[0]-C[0])*(B[1]-A[1]) - (D[1]-C[1])*(B[0]-A[0]);
 
 	float t = t_num/denom;
 	float u = u_num/denom;
-	float eps = 0.001;
+	float eps = 0.0;
 	if ((eps < t && t < 1-eps) && (eps < u && u < 1-eps)) {
 		P << A + t*(B-A);
 		return true;

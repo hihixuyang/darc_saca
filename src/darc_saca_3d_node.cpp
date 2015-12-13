@@ -406,7 +406,8 @@ int main(int argc, char* argv[]) {
 		}
 #endif
 		
-		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		Eigen::Vector4f u_curr(-0.1, -0.75, 0.0, 0.0);
 		nh.getParam("/pca_on", pca_enabled);
 		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
 		quad.ApplyInput();
