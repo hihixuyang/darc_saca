@@ -99,7 +99,6 @@ protected:
       gM = RobotG(xM,u);
 			A_.col(i) = (gP-gM)/(2.0f*j_step);
     }
-		//std::cout << "FindStateJacobian A" << std::endl << A_ << std::endl;
   }  // FindStateJacobian
 
 	// Set the observation vector

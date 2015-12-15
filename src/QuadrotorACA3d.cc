@@ -30,7 +30,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 
 void QuadrotorACA3d::SetupNoise(void) {
 	Z_ = 0.025*0.025*Eigen::Matrix3f::Identity();
-	//Z_ = Eigen::Matrix3f::Zero();
+  //Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
 void QuadrotorACA3d::set_time_horizon(float time_horizon) {
@@ -160,7 +160,8 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction(void) {
-	State x_tilde = x_hat_;
+	//State x_tilde = x_hat_;
+	State x_tilde = x_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
@@ -179,7 +180,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 	a.transpose() = normal.transpose()*J_.back();
 	float b = static_cast<float>((normal.transpose() *
 						 										(pos_colliding - p_star_.back() +
-																 sigma(normal)*normal))	+ 0.02f) / a.norm();
+																 sigma(normal)*normal))	+ 0.002f) / a.norm();
 	a.normalize();
 	
 	Plane tmp_plane;

@@ -43,6 +43,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	float kd  = 2.5;
 	float kp3 = 5.0;
 	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
+	
 	// Control about roll, pitch, yaw rate
 	Input u_sat = u;
 	for (int u_index = 0; u_index < 4; ++u_index) {

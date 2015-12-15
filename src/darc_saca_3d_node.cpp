@@ -242,8 +242,8 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(time_horizon);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
-	x0[0] = 1.0;
-	x0[1] = -1.0;
+	x0[0] = -1.51; //1.0;
+	x0[1] = -1.14; //-1.0;
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
@@ -264,10 +264,6 @@ int main(int argc, char* argv[]) {
 		// the lidar node, preventing extra computation
 		if (new_data) {
 			new_data = false;  // Clear data flag to prevent repeated calculations
-			
-#ifdef ONBOARD_SENSING
-			obstacle_list.clear();
-#endif
 
 			// Full 2d points of the laser for split-and-merge
 			std::vector<Eigen::Vector2f> full_point_list(laser_in.ranges.size());
@@ -327,8 +323,10 @@ int main(int argc, char* argv[]) {
 				mink_points.points.push_back(rviz_point);
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
-			
+			}
 #ifdef ONBOARD_SENSING
+			obstacle_list.clear();
+			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
 				tr << minkowski_point_list[index][0],
@@ -372,8 +370,6 @@ int main(int argc, char* argv[]) {
 			Obstacle3d ceil_b(tr, tl, bl, normal);
 			obstacle_list.push_back(ceil_a);
 			obstacle_list.push_back(ceil_b);
-#else
-			}
 #endif
 			
       // Publish the rviz variables for the lidar
@@ -386,8 +382,6 @@ int main(int argc, char* argv[]) {
 			line_pub.publish(laser_lines);
 			mink_point_pub.publish(mink_points);
 			mink_line_pub.publish(mink_lines);
-
-
 		}
 
 #ifndef ONBOARD_SENSING
@@ -406,8 +400,8 @@ int main(int argc, char* argv[]) {
 		}
 #endif
 		
-		//Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		Eigen::Vector4f u_curr(-0.1, -0.75, 0.0, 0.0);
+		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
+		//Eigen::Vector4f u_curr(-0.125, -0.25, 0.0, 0.0);
 		nh.getParam("/pca_on", pca_enabled);
 		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
 		quad.ApplyInput();
