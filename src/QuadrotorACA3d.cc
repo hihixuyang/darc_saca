@@ -29,7 +29,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
-	Z_ = 0.075*0.075*Eigen::Matrix3f::Identity();
+	Z_ = 0.06*0.06*Eigen::Matrix3f::Identity();
   //Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
