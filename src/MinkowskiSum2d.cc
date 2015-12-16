@@ -114,7 +114,7 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 		b << points[i][0] - B[0], points[i][1] - B[1], 0.0;
 		float theta = atan2(((a.normalized()).cross(b.normalized())).norm(),
 											(a.normalized()).dot(b.normalized()));
-		if (theta > 90.0*M_PI/180.0) { // Split the line
+		if (theta > 45.0*M_PI/180.0) { // Split the line
 			Eigen::Vector2f c;
 			c = radius_*(a + 0.5*(b-a)).normalized().head(2);
 			points.insert(it+i, B + c);

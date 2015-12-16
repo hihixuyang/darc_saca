@@ -242,8 +242,8 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(time_horizon);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
-	x0[0] = -1.51; //1.0;
-	x0[1] = -1.14; //-1.0;
+	x0[0] = 3.63; //1.0;
+	x0[1] = 2.3; //-1.0;
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
