@@ -12,7 +12,6 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 }  // MinkowskiSum2d
 
 std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(int flag) {
-	std::cout << std::endl << "START" << std::endl;
 	RemoveOutliers();
 	CalculateMinkowskiSum();
 	if (flag)
@@ -167,23 +166,23 @@ void MinkowskiSum2d::RemoveOutliers(void) {
 // any intersections that may have occurred between lines
 void MinkowskiSum2d::RemoveIntersections(void) {
 	if (minkowski_points_.size() > 0) {
-		// DEBUGGING
-		std::cout << "Remove Intersections" << std::endl;
-		// \DEBUGGING
-		
 		std::vector<Eigen::Vector2f>::iterator it = minkowski_points_.begin();
 		Eigen::Vector2f intersection_point;
 		for (int i = 1; i < minkowski_points_.size() - 1; ++i) {
 			for (int j = i + 2;
 					 ((i == 1 && j < minkowski_points_.size() - 1) ||
-						(i!= 1 && j < minkowski_points_.size()));
+						(i != 1 && j < minkowski_points_.size()));
 					 ++j) {
+
+				// DEBUGGING
+				std::cout << "i: " << i << ", j: " << j << std::endl;
+				// \DEBUGGING
+
 				if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
 														 minkowski_points_[j - 1], minkowski_points_[j],
 														 intersection_point) ) {
 					// DEBUGGING
 					std::cout << std::endl << "Intersection Found" << std::endl;
-					std::cout << "i: " << i << "j: " << j << std::endl;
 					std::cout << "line a: (" << minkowski_points_[i-1].transpose()
 										<< "), (" << minkowski_points_[i].transpose() << ")" << std::endl;
 					std::cout << "line b: (" << minkowski_points_[j-1].transpose()
@@ -192,11 +191,11 @@ void MinkowskiSum2d::RemoveIntersections(void) {
 					for (int k = 0; k < minkowski_points_.size(); ++k) {
 						std::cout << minkowski_points_[k].transpose() << std::endl;
 					}
-					std::cout << "Remove" << std::endl;
 					// \DEBUGGING
 
 					if (j == minkowski_points_.size() - 1) {
-						minkowski_points_.erase(it, it + i);
+						minkowski_points_.erase(it + i - 1);
+						minkowski_points_.erase(it);
 						minkowski_points_.pop_back();
 						minkowski_points_.insert(it, intersection_point);
 						minkowski_points_.push_back(intersection_point);
@@ -204,22 +203,21 @@ void MinkowskiSum2d::RemoveIntersections(void) {
 						minkowski_points_.erase(it + i, it + j);
 						minkowski_points_.insert(it + i, intersection_point);
 					}
-					// DEBUGGING
+					
+					std::cout << std::endl;
 					for (int k = 0; k < minkowski_points_.size(); ++k) {
 						std::cout << minkowski_points_[k].transpose() << std::endl;
 					}
 					int k;
 					std::cin >> k;
 					// \DEBUGGING
-					
-					i = 1;
+					std::cout << "Removed Intersection" << std::endl;
+					i = 0;
 					break;
 				}
 			}
 			//std::cout << std::endl;
 		}
-		std::cout << "Removed Intersections" << std::endl;
-		std::cout << "minkowski_points_ size: " << minkowski_points_.size() << std::endl;
 	}		
 }  // RemoveIntersections
 

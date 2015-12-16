@@ -242,8 +242,8 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(time_horizon);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
-	x0[0] = 3.63; //1.0;
-	x0[1] = 2.3; //-1.0;
+	x0[0] = 1.0;  
+	x0[1] = -1.0;
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
 				lidar_full_points.segmented_points();
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
-				minkowski_points.ReturnMinkowskiSum();
+				minkowski_points.ReturnMinkowskiSum(0);
 
 			// Store the segmented points for rviz visualization
 			seg_laser_points.points.clear();
@@ -401,7 +401,7 @@ int main(int argc, char* argv[]) {
 #endif
 		
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		//Eigen::Vector4f u_curr(-0.125, -0.25, 0.0, 0.0);
+		//Eigen::Vector4f u_curr(0.0, 0.0, 0.0, 0.0);
 		nh.getParam("/pca_on", pca_enabled);
 		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
 		quad.ApplyInput();

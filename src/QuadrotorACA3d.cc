@@ -29,7 +29,7 @@ QuadrotorACA3d::QuadrotorACA3d(float time_horizon) {
 }  // QuadrotorACA3d
 
 void QuadrotorACA3d::SetupNoise(void) {
-	Z_ = 0.025*0.025*Eigen::Matrix3f::Identity();
+	Z_ = 0.075*0.075*Eigen::Matrix3f::Identity();
   //Z_ = Eigen::Matrix3f::Zero();
 }  // SetupNoise
 
@@ -160,8 +160,8 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 }  // Linearize
 
 void QuadrotorACA3d::ForwardPrediction(void) {
-	//State x_tilde = x_hat_;
-	State x_tilde = x_;
+	State x_tilde = x_hat_;
+	//State x_tilde = x_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction

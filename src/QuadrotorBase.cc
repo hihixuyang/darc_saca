@@ -37,7 +37,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										0,
 										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
 	
-	float max_angle = 15.0f*M_PI/180.0f;
+	float max_angle = 20.0f*M_PI/180.0f;
 	float max_yaw_rate = 45.0f*M_PI/180.0f;
 	float kp2 = 15.1;
 	float kd  = 2.5;
@@ -57,7 +57,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
   tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
 	
-	float kdrag = 1.25;
+	float kdrag = 0.75;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
 	x_dot.segment(3,3) = R*T - g - kdrag*vel;
@@ -93,10 +93,10 @@ void QuadrotorBase::Setup(void) {
 	
 	// Kalman process noise
   Q_ = XXmat::Zero();
-  Q_.block<3,3>(0,0) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(3,3) = 0.005*0.005*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(6,6) = 0.0025*0.0025*Eigen::Matrix3f::Identity();
-  Q_.block<3,3>(9,9) = 0.005*0.005*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(0,0) = 0.005*0.005*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(3,3) = 0.025*0.025*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(6,6) = 0.005*0.005*Eigen::Matrix3f::Identity();
+  Q_.block<3,3>(9,9) = 0.025*0.025*Eigen::Matrix3f::Identity();
 
   // Kalman observation noise
   R_ = ZZmat::Zero();
