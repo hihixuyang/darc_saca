@@ -163,6 +163,7 @@ void QuadrotorACA3d::ForwardPrediction(void) {
 	State x_tilde = x_hat_;
 	//State x_tilde = x_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
+	x_tilde[8] = 0.0;
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 

@@ -163,7 +163,8 @@ int main(int argc, char* argv[]) {
 
 	// laser_scan comes from vrep_lidar which reads the lidar data from vrep
 	// and outputs it at the frequency of the true hardware
-	ros::Subscriber laser_scan = nh.subscribe("laser_scan",1,laser_callback);
+	//ros::Subscriber laser_scan = nh.subscribe("laser_scan",1,laser_callback);
+	ros::Subscriber laser_scan = nh.subscribe("scan",1,laser_callback);
 
 	// read the top and bottom sonar readings which will be ADC on hardware
 	ros::Subscriber top_sonar = nh.subscribe("/vrep/top_sonar",1,
@@ -237,7 +238,6 @@ int main(int argc, char* argv[]) {
 	visualization_msgs::Marker mink_lines;
 	SetupMinkowskiLinesVisualization(mink_lines, 7);
 
-	
 	// Setup the class instance of the quadrotor for collision avoidance
 	QuadrotorACA3d quad(time_horizon);
 	
@@ -259,44 +259,50 @@ int main(int argc, char* argv[]) {
 	std::vector<Obstacle3d> obstacle_list;
 	while(ros::ok()) {
 		ros::spinOnce();
-		
+
 		// Only process the lidar vertices if new data is received from
 		// the lidar node, preventing extra computation
 		if (new_data) {
 			new_data = false;  // Clear data flag to prevent repeated calculations
 
 			// Full 2d points of the laser for split-and-merge
-			std::vector<Eigen::Vector2f> full_point_list(laser_in.ranges.size());
+			std::vector<Eigen::Vector2f> full_point_list; //(laser_in.ranges.size());
 
 			// Full list of distances for clustering 
-			std::vector<float> range_list(laser_in.ranges.size());
+			std::vector<float> range_list; //laser_in.ranges.size());
 			
 			full_laser_points.points.clear();
+			//float theta_rel = M_PI/4.0;
 			float theta_rel = laser_in.angle_min - quad.est_yaw();
 			
 			Eigen::Vector2f tmp_point;
 			for (int data_index = 0; data_index < laser_in.ranges.size();
 					 ++data_index) {
-				range_list[data_index] = laser_in.ranges[data_index];
-				tmp_point[0] =  range_list[data_index]*cos(theta_rel);
-				tmp_point[1] = -range_list[data_index]*sin(theta_rel);
-				full_point_list[data_index] = tmp_point;
-
-				geometry_msgs::Point laser_point;
-				laser_point.x = tmp_point[0];
-				laser_point.y = tmp_point[1];
-				laser_point.z = 0.02;
-				full_laser_points.points.push_back(laser_point);
-
+			  if (laser_in.ranges[data_index] <= 6.0)
+			  {
+  				range_list.push_back(laser_in.ranges[data_index]);
+				  
+				  tmp_point[0] =  range_list.back()*cos(theta_rel);
+  				tmp_point[1] = -range_list.back()*sin(theta_rel);
+  				full_point_list.push_back(tmp_point);
+  
+  				geometry_msgs::Point laser_point;
+  				laser_point.x = tmp_point[0];
+  				laser_point.y = tmp_point[1];
+  				laser_point.z = 0.02;
+  				full_laser_points.points.push_back(laser_point);
+        }
 				theta_rel += laser_in.angle_increment;
 			}
-
+      //std:reverse(range_list.begin(), range_list.end());
+      //std::reverse(full_laser_points.points.begin(), full_laser_points.points.end());
 			// Perform the segmentation algorithm to get the reduced vertex list
 			LidarSegment2d lidar_full_points(full_point_list,
 																			 range_list,
 																			 distance_threshold);
 			std::vector<Eigen::Vector2f> lidar_segmented_points =
 				lidar_full_points.segmented_points();
+			
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			std::vector<Eigen::Vector2f> minkowski_point_list =
 				minkowski_points.ReturnMinkowskiSum(0);
@@ -324,6 +330,7 @@ int main(int argc, char* argv[]) {
 				rviz_point.z = 0.0;
 				mink_lines.points.push_back(rviz_point);
 			}
+			
 #ifdef ONBOARD_SENSING
 			obstacle_list.clear();
 			for (int index = 1; index < minkowski_point_list.size(); ++index) {
