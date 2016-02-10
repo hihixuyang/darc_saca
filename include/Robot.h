@@ -30,6 +30,14 @@ public:
 		u_ = u;
 	}  // set_input
 	
+  Input u(void) {
+    return u_;
+  }  // u()
+
+  State x_hat(void) {
+    return x_hat_;
+  }  // x_hat()
+
   // Update state estimate from input
   void ApplyInput() {
     x_ = RobotG(x_, u_) + SampleGaussian(State::Zero(), M_);

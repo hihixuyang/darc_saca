@@ -12,7 +12,7 @@ class QuadrotorACA3d : public QuadrotorBase {
 public:
 	QuadrotorACA3d(void);
 	QuadrotorACA3d(float time_horizon);
-	
+
   void SetupNoise(void);  // Set the values of Z, M, and initialize Mtau
 	void set_time_horizon(float time_horizon);
 	Eigen::Vector3f sensing_noise(void);
@@ -20,7 +20,8 @@ public:
 											 std::vector<Obstacle3d>& obstacle_list, int flag);
 	std::vector<Eigen::Vector3f> InitialDesiredTrajectory(void);
 	std::vector<Eigen::Vector3f> FinalDesiredTrajectory(void);
-	
+  float GetThrottle(void);
+
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
 	Input delta_u_;  // The change in input calculated from the algorithm
@@ -30,7 +31,7 @@ private:
 	std::vector<State> gm_, gp_;  // Solved states with perturbation for Jacobian
 	XXmat Mtau_;  // Position uncertainty at time tau
 	Eigen::Matrix3f Z_;  // Obstacle sensing uncertainty
-	
+
 	std::vector<Plane> halfplanes_;  // Set of halfplanes representing collisions
 	std::vector<Position> p_star_;  // Desired positions from trajectory
 	std::vector<Eigen::Vector3f> p_star_initial_;
@@ -57,11 +58,11 @@ private:
 	float sigma(const Position& normal);
 
 	// Solve for p_star_ and J_ for a given number of steps
-	void Linearize(const State& x, const Input& u);  
+	void Linearize(const State& x, const Input& u);
 
 	// Solve the forward prediction of the trajectory with initial position of 0.
 	void ForwardPrediction();
-	
+
 	// Return desired position of current input
 	Position desired_position(void);
 
@@ -74,7 +75,7 @@ private:
 
 	// Clear the halfplane list after the algorithm has completed
 	void ClearHalfplanes(void);
-	
+
 	// Find which obstacles can potentially be colliding
 	std::vector<int>
 		FindPotentialCollidingPlanes(std::vector<Obstacle3d>& obstacle_list);

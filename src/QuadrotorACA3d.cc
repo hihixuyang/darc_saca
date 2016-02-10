@@ -47,14 +47,14 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	set_desired_u(desired_input);
 	ResetDeltaU();
 	bool found_collision;
-	for (int loop_index = 0; loop_index < 12; ++loop_index) {
+	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
 		ForwardPrediction();
-		if (loop_index == 0) {
-			p_star_initial_ = p_star_;
-		}
-		if (!flag) {
-			break;
-		}
+		//if (loop_index == 0) {
+		//	p_star_initial_ = p_star_;
+		//}
+		//if (!flag) {
+		//	break;
+		//}
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -64,7 +64,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 		CalculateDeltaU();
 		ClearHalfplanes();
 	}
-		u_ = desired_u_ + delta_u_;
+	u_ = desired_u_ + delta_u_;
 }  // AvoidCollision
 
 std::vector<Eigen::Vector3f> QuadrotorACA3d::InitialDesiredTrajectory(void) {
@@ -75,8 +75,19 @@ std::vector<Eigen::Vector3f> QuadrotorACA3d::FinalDesiredTrajectory(void) {
 	return p_star_;
 }  // FinalDesiredTrajectory
 
+float QuadrotorACA3d::GetThrottle(void) {
+  float T = (mass_*gravity_ + kp1_*(max_climb_rate_*u_[2] - x_hat_[5])) / (cos(x_hat_[6])*cos(x_hat_[7]));
+  T = T / (mass_*gravity_) - 0.5;
+  if (T < 0.0) {
+    T = 0.0;
+  } else if (T > 1.0) {
+    T = 1.0;
+  }
+  return T;  // TODO Scale T from motor thrust to 0-1
+}  // GetThrottle
+
 void QuadrotorACA3d::set_desired_u(const Input& desired_u) {
-	desired_u_ = desired_u;
+  desired_u_ = desired_u;
 }  // set_desired_u
 
 void QuadrotorACA3d::ResetDeltaU(void) {
