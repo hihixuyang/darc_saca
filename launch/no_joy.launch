@@ -1,4 +1,0 @@
-<launch>
-  <node pkg="darc_ardrone" type="flyfromjoy" name="InputMapping" respawn="true" />
-  <node pkg="darc_saca" type="darc_saca_node" name="SACA" respawn="true" output="screen"/>
-</launch>

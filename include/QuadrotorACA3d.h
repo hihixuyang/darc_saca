@@ -18,9 +18,6 @@ public:
 	Eigen::Vector3f sensing_noise(void);
 	void AvoidCollisions(const Input& desired_input,
 											 std::vector<Obstacle3d>& obstacle_list, int flag);
-	std::vector<Eigen::Vector3f> InitialDesiredTrajectory(void);
-	std::vector<Eigen::Vector3f> FinalDesiredTrajectory(void);
-  float GetThrottle(void);
 
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
@@ -34,7 +31,6 @@ private:
 
 	std::vector<Plane> halfplanes_;  // Set of halfplanes representing collisions
 	std::vector<Position> p_star_;  // Desired positions from trajectory
-	std::vector<Eigen::Vector3f> p_star_initial_;
 	std::vector<Eigen::Matrix3f> J_;  // Set of jacobians along trajectory
 
 	// Set the desired input from high level controller or user

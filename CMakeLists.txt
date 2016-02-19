@@ -145,17 +145,17 @@ add_executable(darc_saca_3d_node
 	src/darc_saca_3d_node.cpp
 )
 
-add_executable(darc_saca_2d_node
-	src/uncertainty_sampling.cc
-	src/wallVertices.cpp
-	src/QuadrotorBase.cc
-	src/linear_programming_2d.cc
-	src/Obstacle2d.cc
-	src/LidarSegment2d.cc
-	src/MinkowskiSum2d.cc
-	src/QuadrotorACA2d.cc
-	src/darc_saca_2d_node.cpp
-)
+#add_executable(darc_saca_2d_node
+#	src/uncertainty_sampling.cc
+#	src/wallVertices.cpp
+#	src/QuadrotorBase.cc
+#	src/linear_programming_2d.cc
+#	src/Obstacle2d.cc
+#	src/LidarSegment2d.cc
+#	src/MinkowskiSum2d.cc
+#	src/QuadrotorACA2d.cc
+#	src/darc_saca_2d_node.cpp
+#)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -163,7 +163,7 @@ add_executable(darc_saca_2d_node
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(darc_saca_3d_node ${catkin_LIBRARIES})
-target_link_libraries(darc_saca_2d_node  ${catkin_LIBRARIES})
+#target_link_libraries(darc_saca_2d_node  ${catkin_LIBRARIES})
 
 #############
 ## Install ##

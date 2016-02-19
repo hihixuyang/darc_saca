@@ -1,5 +1,4 @@
 #include "QuadrotorACA3d.h"
-//#include "linear_programming_3d.h"
 #include <stdio.h>
 
 QuadrotorACA3d::QuadrotorACA3d(void) {
@@ -49,12 +48,6 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	bool found_collision;
 	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
 		ForwardPrediction();
-		//if (loop_index == 0) {
-		//	p_star_initial_ = p_star_;
-		//}
-		//if (!flag) {
-		//	break;
-		//}
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -66,25 +59,6 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	}
 	u_ = desired_u_ + delta_u_;
 }  // AvoidCollision
-
-std::vector<Eigen::Vector3f> QuadrotorACA3d::InitialDesiredTrajectory(void) {
-	return p_star_initial_;
-}  // InitialDesiredTrajectory
-
-std::vector<Eigen::Vector3f> QuadrotorACA3d::FinalDesiredTrajectory(void) {
-	return p_star_;
-}  // FinalDesiredTrajectory
-
-float QuadrotorACA3d::GetThrottle(void) {
-  float T = (mass_*gravity_ + kp1_*(max_climb_rate_*u_[2] - x_hat_[5])) / (cos(x_hat_[6])*cos(x_hat_[7]));
-  T = T / (mass_*gravity_) - 0.5;
-  if (T < 0.0) {
-    T = 0.0;
-  } else if (T > 1.0) {
-    T = 1.0;
-  }
-  return T;  // TODO Scale T from motor thrust to 0-1
-}  // GetThrottle
 
 void QuadrotorACA3d::set_desired_u(const Input& desired_u) {
   desired_u_ = desired_u;
@@ -131,7 +105,6 @@ QuadrotorACA3d::SensingUncertaintyProjection(const Position& normal) {
 }  // SensingUncertaintyProjection
 
 float QuadrotorACA3d::sigma(const Position& normal) {
-	//return 0.0; // REMOVE AFTER DEBUGGING
   return VarianceProjection(Mtau_.block(0,0,3,3) + Z_, normal);
 }  // sigma
 
@@ -150,9 +123,9 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 			FindStateJacobian(g_, u);
 		}
 		p_star_[time_step] = g_.head(3);
-	  MotionVarianceIntegration();  // Update Mtau_
+		// OFF FOR DETERMINISTIC MotionVarianceIntegration();  // Update Mtau_
 		// Loop over input dimension and calculate numerical Jacobian
-    for (int dim = 0; dim < 3; ++dim) {  
+    for (int dim = 0; dim < 3; ++dim) {
 			Input up = u;
 			up[dim] += j_step;
 			Input um = u;
@@ -172,9 +145,8 @@ void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
 
 void QuadrotorACA3d::ForwardPrediction(void) {
 	State x_tilde = x_hat_;
-	//State x_tilde = x_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
-	x_tilde[8] = 0.0;
+	x_tilde[8] = 0.0; // Eliminate yaw for relative heading
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -190,11 +162,9 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() *
-						 										(pos_colliding - p_star_.back() +
-																 sigma(normal)*normal))	+ 0.002f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.002f) / a.norm();
 	a.normalize();
-	
+
 	Plane tmp_plane;
   tmp_plane.point.x(b*a[0]);
 	tmp_plane.point.y(b*a[1]);

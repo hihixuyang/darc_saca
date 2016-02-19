@@ -4,10 +4,12 @@
 #include <geometry_msgs/Quaternion.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Dense>
 
 #include "QuadrotorACA3d.h"
@@ -19,6 +21,8 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <math.h>
+#include <numeric>
 
 // Read in the desired input from the RC controller
 Eigen::Vector3f u_goal;
@@ -35,7 +39,7 @@ bool new_lidar = false;
 sensor_msgs::LaserScan laser_in;
 void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 	laser_in = laser_input;
-	new_lidar = true;
+	// FOR DEBUGGING new_lidar = true;
 }  // laser_callback
 
 // Read in the reading from the top facing sonar
@@ -43,7 +47,7 @@ float top_sonar_dist = 50.0;
 bool new_top_sonar = false;
 void top_sonar_callback(const std_msgs::Float32& top_in) {
 	top_sonar_dist = top_in.data;
-  new_top_sonar = true;
+  // FOR DEBUGGING new_top_sonar = true;
 }  // top_sonar_callback
 
 // Read in the reading from the bottom facing sonar
@@ -51,30 +55,35 @@ float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
 void bottom_sonar_callback(const std_msgs::Float32& bottom_in) {
 	bottom_sonar_dist = -bottom_in.data; // negative data since it's below quad
-  new_bottom_sonar = true;
+  // DEBUGGING new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
-// Read in IMU data form mavros
-float rx, ry;
-void imu_callback(const sensor_msgs::Imu& imu_in) {
-  rx = 0.0;  // TODO QUATERNION TO RPY
-  ry = 0.0;  // TODO QUATERNION TO RPY
-}  // imu_callback
-
-float wx, wy, wz, vx, vy, vz;
+float vx = 0.0, vy = 0.0, vz = 0.0;
 void vel_callback(const geometry_msgs::TwistStamped& vel_in) {
-  wx = vel_in.twist.angular.x;
-  wy = vel_in.twist.angular.y;
-  wz = vel_in.twist.angular.z;
   vx = vel_in.twist.linear.x;
   vy = vel_in.twist.linear.y;
   vz = vel_in.twist.linear.z;
 }  // vel_callback
 
+float rx = 0.0, ry = 0.0;
+float wx = 0.0, wy = 0.0, wz = 0.0;
+void imu_callback(const sensor_msgs::Imu& imu_in) {
+  float x = imu_in.orientation.x;
+  float y = imu_in.orientation.y;
+  float z = imu_in.orientation.z;
+  float w = imu_in.orientation.w;
+
+  rx = atan2(2.0*y*z - 2.0*x*w, 1.0 - 2.0*x*x - 2.0*y*y);
+  ry = atan2(-2.0*(x*z-y*w), sqrt(pow(1.0-2.0*y*y-2.0*z*z,2) + pow(2.0*(x*y-z*w),2)));
+  wx = imu_in.angular_velocity.x;
+  wy = imu_in.angular_velocity.y;
+  wz = imu_in.angular_velocity.z;
+}  // imu_callback
+
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_3d_node");
 	ros::NodeHandle nh;
-	ros::Rate loop_rate(50);
+	ros::Rate loop_rate(100);
 
 	// desired_u and desired_yaw comes from input mapping node
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, input_callback);
@@ -88,19 +97,19 @@ int main(int argc, char* argv[]) {
 	ros::Subscriber bottom_sonar = nh.subscribe("bottom_sonar_reading",1,
 																							bottom_sonar_callback);
 
-  // Read the IMU data from the pixhawk using mavros
-  ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 1, imu_callback);
-
   // Read velocity estimates from pixhawk
   ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity", 1, vel_callback);
+
+  // Read imu from pixhawk
+  ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 1, imu_callback);
 
   // Publish the new collision free input
   ros::Publisher u_pub = nh.advertise<geometry_msgs::Twist>("new_u", 1);
 
-  // Publish the estimated state
-  ros::Publisher state_pub = nh.advertise<darc_saca::State>("x_hat", 1);
+  // Publish the estimated state for debugging
+  ros::Publisher x_pub = nh.advertise<darc_saca::State>("x_hat", 1);
 
-	// Read in the value of hte time horizon from the launch file
+  // Read in the value of hte time horizon from the launch file
 	double time_horizon;
 	if (nh.getParam("/time_horizon", time_horizon)) {;}
 	else {
@@ -108,8 +117,7 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	// Read in the distance threshold for the obstacle segmentation from
-	// the launch file
+	// Read in the distance threshold for the obstacle segmentation from the launch file
 	double distance_threshold;
 	if (nh.getParam("/dist_thresh", distance_threshold)) {;}
 	else {
@@ -133,11 +141,11 @@ int main(int argc, char* argv[]) {
 
 	srand(time(NULL));
 
-	float radius = quad.radius();
+	float radius = quad.radius() * 2.0;
 
 	std::vector<Obstacle3d> obstacle_list;
 
-  sleep(10);
+  sleep(3);
 
 	ROS_ERROR("STARTING LOOP");
 
@@ -152,10 +160,13 @@ int main(int argc, char* argv[]) {
 		ros::spinOnce();
 
     // Read from sensors and update state estimate
-    quad.ApplyKalman(rx, ry, wx, wy, wz, vx, vy, vz);
+    Eigen::Matrix<float,8,1> z;
+    z[0] = rx; z[1] = ry;
+    z[2] = wx; z[3] = wy; z[4] = wz;
+    z[5] = vx; z[6] = vy; z[7] = vz;
+    quad.ApplyKalman(z);
 
-    // Publish the estimated state for debugging
-    Eigen::VectorXf x_hat = quad.x_hat();
+    QuadrotorACA3d::State x_hat = quad.x_hat();
     darc_saca::State x_out;
     x_out.position.linear.x = x_hat[0];
     x_out.position.linear.y = x_hat[1];
@@ -169,7 +180,7 @@ int main(int argc, char* argv[]) {
     x_out.velocity.angular.x = x_hat[9];
     x_out.velocity.angular.y = x_hat[10];
     x_out.velocity.angular.z = x_hat[11];
-    state_pub.publish(x_out);
+    x_pub.publish(x_out);
 
 		// Only process the lidar vertices if new data is received from
 		// the lidar node, preventing extra computation
@@ -208,16 +219,16 @@ int main(int argc, char* argv[]) {
     }
 
     if (new_bottom_sonar) {
-			bottom_sonar_dist = (bottom_sonar_dist + radius) / (cos(x_hat[6])*cos(x_hat[7]));
+			bottom_sonar_dist = (bottom_sonar_dist + radius);
     }
 
     if (new_top_sonar) {
-      top_sonar_dist = (top_sonar_dist - radius) / (cos(x_hat[6])*cos(x_hat[7]));
+      top_sonar_dist = (top_sonar_dist - radius);
     }
 
 		if (new_lidar || new_top_sonar || new_bottom_sonar) {
 		  obstacle_list.clear();
-		  /*
+/*
 			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
@@ -239,7 +250,7 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(w_a);
 				obstacle_list.push_back(w_b);
 			}
-      */
+*/
       // also store the "floor" and "ceiling" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
@@ -260,7 +271,7 @@ int main(int argc, char* argv[]) {
 			Obstacle3d ceil_b(tr, tl, bl, normal);
 			obstacle_list.push_back(ceil_a);
 	    obstacle_list.push_back(ceil_b);
-      
+
 			if (new_lidar) { new_lidar = false; }
       if (new_bottom_sonar) { new_bottom_sonar = false; }
       if (new_top_sonar) { new_top_sonar = false; }
@@ -269,16 +280,14 @@ int main(int argc, char* argv[]) {
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		nh.getParam("/pca_on", pca_enabled);
 
-    //std::cout << "Run algorithm" << std::endl;
 		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
 
-    //std::cout << "Send new input" << std::endl;
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;
     u_out.angular.x = u_new[0];
     u_out.angular.y = u_new[1];
+    u_out.linear.z = u_new[2];
     u_out.angular.z = yaw_input;
-    u_out.linear.z = quad.GetThrottle();
     u_pub.publish(u_out);
 
 		loop_rate.sleep();

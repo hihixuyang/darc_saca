@@ -29,7 +29,7 @@ public:
   void set_input(const Input& u) {
 		u_ = u;
 	}  // set_input
-	
+
   Input u(void) {
     return u_;
   }  // u()
@@ -46,19 +46,23 @@ public:
   }  // ApplyInput
 
   float radius() { return radius_; }
-	
+
+	void SetVoltage(const float& v_in) {
+	  voltage_ = v_in;
+	}
+
 protected:
   typedef Eigen::Matrix<float, X_DIM, X_DIM> XXmat;
   typedef Eigen::Matrix<float, Z_DIM, Z_DIM> ZZmat;
   typedef Eigen::Matrix<float, X_DIM, Z_DIM> XZmat;
   typedef Eigen::Matrix<float, Z_DIM, X_DIM> ZXmat;
-    
+ 
   State x_, x_hat_;
 	Input u_;
-	
+
   XXmat M_; // True process noise, could be different than Kalman
 	ZZmat N_; // True observation noise, coudl be differen than Kalman
-	
+
   Observation z_;  // Observation vector
   XXmat Q_;        // Process noise for Kalman
   ZZmat R_;        // Measurement noise for Kalman
@@ -69,30 +73,35 @@ protected:
 	XXmat A_;  // State jacobian term
   float dt_;
   float radius_;
-    
+
+  float voltage_;
+
   // Equations of motion, to be set in derived classes
   virtual State RobotF(const State& x, const Input& u) = 0;
-    
+
   // Solution of state equations for time t
   State RobotG(const State& x, const Input& u) {
     State k1 = RobotF(x, u);
     State k2 = RobotF(x + 0.5*dt_*k1, u);
     State k3 = RobotF(x + 0.5*dt_*k2, u);
     State k4 = RobotF(x + dt_*k3, u);
-      
+
     State x_new = x + (dt_/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4);
-      
-    double theta = (x_new.segment(6,3)).norm();
+
+    double theta = x_new[8];
     double eps = 0.0001;
-      
+
+    if (theta < 0.0) {
+      theta = 2.0*M_PI + theta;
+    }
     if (theta > 2.0*M_PI) {
       theta = fmod(theta,2.0*M_PI);
       if (theta < eps && theta > -eps) {
-        x_new.segment(6,3) << 0,0,0;
+        x_new[8] = 0.0;
       } else {
-    	  x_new.segment(6,3) = theta*(x_new.segment(6,3)).normalized();
+    	  x_new[8] = theta;
       }
-    } 	
+    }
     return x_new;
   }  // RobotG
 
