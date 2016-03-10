@@ -17,20 +17,20 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   Eigen::Vector3f vel = x.segment(3,3);
   Eigen::Vector3f r = x.segment(6,3);
   Eigen::Vector3f w = x.segment(9,3);
-  float cphi = cos(x[6]);
-  float sphi = sin(x[6]);
-  float ctheta = cos(x[7]);
-  float stheta = sin(x[7]);
-  float cpsi = cos(x[8]);
-  float spsi = sin(x[8]);
+  float cx = cos(x[6]);
+  float sx = sin(x[6]);
+  float cy = cos(x[7]);
+  float sy = sin(x[7]);
+  float cz = cos(x[8]);
+  float sz = sin(x[8]);
 
   float kdrag = 0.75;
   float mass = 1.42;
   Eigen::Matrix3f R;
-  R << ctheta*cpsi,  -ctheta*spsi,  stheta,
-       sphi*stheta*cpsi+cpsi*spsi, -sphi*stheta*spsi+cphi*cpsi, -sphi*ctheta,
-      -cphi*stheta*cpsi+sphi*spsi, cphi*stheta*spsi+sphi*cpsi, cphi*ctheta; 
-
+  R << cz*cy, -sz*cy + cz*sy*sx, sz*sx + cz*sy*cx,
+       sz*cy, cz*cx + sz*sy*sx, -cz*sx + sz*sy*cx,
+       -sy, cy*sx, cy*cx;
+ 
   // Convert from an input of -1,1 into a thrust value in N
   float t = 0.0, t1 = 0.0, t2 = 0.0;
   float v1 = 0.0, v2 = 0.0;

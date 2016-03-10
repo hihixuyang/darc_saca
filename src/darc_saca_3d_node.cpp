@@ -39,7 +39,7 @@ bool new_lidar = false;
 sensor_msgs::LaserScan laser_in;
 void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 	laser_in = laser_input;
-	// FOR DEBUGGING new_lidar = true;
+	new_lidar = true;
 }  // laser_callback
 
 // Read in the reading from the top facing sonar
@@ -47,7 +47,7 @@ float top_sonar_dist = 50.0;
 bool new_top_sonar = false;
 void top_sonar_callback(const std_msgs::Float32& top_in) {
 	top_sonar_dist = top_in.data;
-  // FOR DEBUGGING new_top_sonar = true;
+  new_top_sonar = true;
 }  // top_sonar_callback
 
 // Read in the reading from the bottom facing sonar
@@ -55,7 +55,7 @@ float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
 void bottom_sonar_callback(const std_msgs::Float32& bottom_in) {
 	bottom_sonar_dist = -bottom_in.data; // negative data since it's below quad
-  // DEBUGGING new_bottom_sonar = true;
+  new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
 float vx = 0.0, vy = 0.0, vz = 0.0;
@@ -228,7 +228,7 @@ int main(int argc, char* argv[]) {
 
 		if (new_lidar || new_top_sonar || new_bottom_sonar) {
 		  obstacle_list.clear();
-/*
+
 			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
@@ -250,7 +250,7 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(w_a);
 				obstacle_list.push_back(w_b);
 			}
-*/
+
       // also store the "floor" and "ceiling" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
