@@ -25,25 +25,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	R << cpsi*ctheta-sphi*spsi*stheta, -cphi*spsi, cpsi*stheta+ctheta*sphi*spsi,
 		ctheta*spsi+cpsi*sphi*stheta, cphi*cpsi, spsi*stheta-cpsi*ctheta*sphi,
 		-cphi*stheta, sphi, cphi*ctheta;
-	
-	Eigen::Matrix3f I;
-	I << 0.6, 0,   0,
-		   0,   0.6, 0,
-		   0,   0,   0.9;
 
-	float max_climb_rate = 1.0;
-	float kp1 = 20.0;
-	Eigen::Vector3f T(0,
-										0,
-										g.norm()/(cphi*ctheta) + kp1*(max_climb_rate*u[2]-vel[2]));
-	
-	float max_angle = 20.0f*M_PI/180.0f;
-	float max_yaw_rate = 45.0f*M_PI/180.0f;
-	float kp2 = 15.1;
-	float kd  = 2.5;
-	float kp3 = 5.0;
-	Eigen::Vector3f tau = Eigen::Vector3f::Zero();
-	
 	// Control about roll, pitch, yaw rate
 	Input u_sat = u;
 	for (int u_index = 0; u_index < 4; ++u_index) {
@@ -53,16 +35,18 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 			u_sat[u_index] = 1.0;
 		}
 	}
-	tau[0] = kp2*(-max_angle*u[1] - phi) - kd*w[0];
-	tau[1] = kp2*(max_angle*u[0] - theta) - kd*w[1];
-  tau[2] = kp3*(max_yaw_rate*u[3] - w[2]);
 	
-	float kdrag = 0.75;
-	State x_dot;
+  float t = -1.1513*pow(u_sat[2], 3) - 0.0111*pow(u_sat[2],2) + 3.7265*u_sat[2] + 2.8065;
+	Eigen::Vector3f T(0, 0, 4.0 * t / 1.42);
+	float kdrag = 0.2;
+
+  State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = R*T - g - kdrag*vel;
+	x_dot.segment(3,3) = R*T - g - kdrag*vel / mass_;
 	x_dot.segment(6,3) = w;
-	x_dot.segment(9,3) = I.inverse()*(tau + w.cross(I*w));
+	x_dot[9]  = kpx_*(u_sat[0] - r[0]) - kdx_*w[0];
+	x_dot[10] = kpy_*(u_sat[1] - r[1]) - kdy_*w[1];
+	x_dot[11] = kpz_*(u_sat[3] - w[2]);
 	return x_dot;
 }  // RobotF
 

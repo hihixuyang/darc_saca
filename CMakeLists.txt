@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   cmake_modules
+  message_generation
+  message_runtime
 )
 
 ## System dependencies are found with CMake's conventions
@@ -47,11 +49,10 @@ include_directories(${Eigen_INCLUDE_DIRS})
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  PointList.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -68,10 +69,11 @@ include_directories(${Eigen_INCLUDE_DIRS})
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   sensor_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -155,6 +157,11 @@ add_executable(darc_saca_2d_node
 	src/darc_saca_2d_node.cpp
 )
 
+add_executable(data_processing_node
+  src/LidarSegment2d.cc
+  src/data_processing_node.cpp
+)
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(darc_saca_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -162,6 +169,7 @@ add_executable(darc_saca_2d_node
 ## Specify libraries to link a library or executable target against
 target_link_libraries(darc_saca_3d_node ${catkin_LIBRARIES})
 target_link_libraries(darc_saca_2d_node  ${catkin_LIBRARIES})
+target_link_libraries(data_processing_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##

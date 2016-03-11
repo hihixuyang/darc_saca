@@ -31,6 +31,14 @@ public:
 	float est_yaw(void);
 	
 protected:
+  static const float mass_ = 1.42;
+  static const float max_angle_ = 15.0* M_PI / 180.0;
+  static const float max_yaw_rate_ = 60.0 * M_PI / 180.0;
+  static const float kpx_ = 145;
+  static const float kdx_ = 5;
+  static const float kpy_ = 145;
+  static const float kdy_ = 5;
+  static const float kpz_ = 5;
 	State RobotF(const State& x0, const Input& u0);
 	void set_z(void);
 };
