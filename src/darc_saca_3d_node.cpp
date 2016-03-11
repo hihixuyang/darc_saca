@@ -39,7 +39,7 @@ bool new_lidar = false;
 sensor_msgs::LaserScan laser_in;
 void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 	laser_in = laser_input;
-	new_lidar = true;
+//	new_lidar = true;
 }  // laser_callback
 
 // Read in the reading from the top facing sonar
@@ -47,7 +47,7 @@ float top_sonar_dist = 50.0;
 bool new_top_sonar = false;
 void top_sonar_callback(const std_msgs::Float32& top_in) {
 	top_sonar_dist = top_in.data;
-  new_top_sonar = true;
+//  new_top_sonar = true;
 }  // top_sonar_callback
 
 // Read in the reading from the bottom facing sonar
@@ -269,8 +269,8 @@ int main(int argc, char* argv[]) {
       normal << 0,0,-1;
 			Obstacle3d ceil_a(tr, br, bl, normal);
 			Obstacle3d ceil_b(tr, tl, bl, normal);
-			obstacle_list.push_back(ceil_a);
-	    obstacle_list.push_back(ceil_b);
+			//obstacle_list.push_back(ceil_a);
+	    //obstacle_list.push_back(ceil_b);
 
 			if (new_lidar) { new_lidar = false; }
       if (new_bottom_sonar) { new_bottom_sonar = false; }

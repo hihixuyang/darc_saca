@@ -1,4 +1,0 @@
-<arg name="tau" default="1.5"/>
-<param name="time_horizon" value="$(arg tau)"/>
-<arg name="dist" default="0.1"/>
-<param name="dist_thresh" value="$(arg dist)"/>
