@@ -54,6 +54,7 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 																				potential_colliding_planes);
 		if (!found_collision)
 			break;
+
 		CalculateDeltaU();
 		ClearHalfplanes();
 	}
@@ -162,7 +163,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.5f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.3f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;
