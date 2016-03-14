@@ -16,9 +16,10 @@ public:
   void SetupNoise(void);  // Set the values of Z, M, and initialize Mtau
 	void set_time_horizon(float time_horizon);
 	Eigen::Vector3f sensing_noise(void);
-	void AvoidCollisions(const Input& desired_input,
+	bool AvoidCollisions(const Input& desired_input,
 											 std::vector<Obstacle3d>& obstacle_list, int flag);
-
+  void SetVoltage(float);
+  
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
 	Input delta_u_;  // The change in input calculated from the algorithm

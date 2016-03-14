@@ -17,7 +17,7 @@
 #include "MinkowskiSum2d.h"
 #include "Obstacle3d.h"
 #include "wallVertices.h"
-#include "darc_saca/State.h"
+#include "mavros_msgs/BatteryStatus.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -80,6 +80,11 @@ void imu_callback(const sensor_msgs::Imu& imu_in) {
   wz = imu_in.angular_velocity.z;
 }  // imu_callback
 
+float voltage = 0.0;
+void voltage_callback(const mavros_msgs::BatteryStatus& battery) {
+  voltage = battery.voltage;
+}  // voltage_callback
+
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_3d_node");
 	ros::NodeHandle nh;
@@ -103,11 +108,15 @@ int main(int argc, char* argv[]) {
   // Read imu from pixhawk
   ros::Subscriber imu_sub = nh.subscribe("/mavros/imu/data", 1, imu_callback);
 
+  // Read batter from pixhawk
+  ros::Subscriber volt_sub = nh.subscribe("/mavros/battery", 1, voltage_callback);
+
   // Publish the new collision free input
   ros::Publisher u_pub = nh.advertise<geometry_msgs::Twist>("new_u", 1);
 
   // Publish the estimated state for debugging
-  ros::Publisher x_pub = nh.advertise<darc_saca::State>("x_hat", 1);
+  ros::Publisher p_pub = nh.advertise<geometry_msgs::Twist>("est_pos", 1);
+  ros::Publisher v_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
 
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
@@ -141,13 +150,9 @@ int main(int argc, char* argv[]) {
 
 	srand(time(NULL));
 
-	float radius = quad.radius() * 2.0;
+	float radius = quad.radius();
 
 	std::vector<Obstacle3d> obstacle_list;
-
-  sleep(3);
-
-	ROS_ERROR("STARTING LOOP");
 
   QuadrotorACA3d::State x_hat = QuadrotorACA3d::State::Zero();
 
@@ -167,20 +172,21 @@ int main(int argc, char* argv[]) {
     quad.ApplyKalman(z);
 
     QuadrotorACA3d::State x_hat = quad.x_hat();
-    darc_saca::State x_out;
-    x_out.position.linear.x = x_hat[0];
-    x_out.position.linear.y = x_hat[1];
-    x_out.position.linear.z = x_hat[2];
-    x_out.velocity.linear.x = x_hat[3];
-    x_out.velocity.linear.y = x_hat[4];
-    x_out.velocity.linear.z = x_hat[5];
-    x_out.position.angular.x = x_hat[6];
-    x_out.position.angular.y = x_hat[7];
-    x_out.position.angular.z = x_hat[8];
-    x_out.velocity.angular.x = x_hat[9];
-    x_out.velocity.angular.y = x_hat[10];
-    x_out.velocity.angular.z = x_hat[11];
-    x_pub.publish(x_out);
+    geometry_msgs::Twist p_out, v_out;
+    p_out.linear.x = x_hat[0];
+    p_out.linear.y = x_hat[1];
+    p_out.linear.z = x_hat[2];
+    v_out.linear.x = x_hat[3];
+    v_out.linear.y = x_hat[4];
+    v_out.linear.z = x_hat[5];
+    p_out.angular.x = x_hat[6];
+    p_out.angular.y = x_hat[7];
+    p_out.angular.z = x_hat[8];
+    v_out.angular.x = x_hat[9];
+    v_out.angular.y = x_hat[10];
+    v_out.angular.z = x_hat[11];
+    p_pub.publish(p_out);
+    v_pub.publish(v_out);
 
 		// Only process the lidar vertices if new data is received from
 		// the lidar node, preventing extra computation
@@ -228,7 +234,7 @@ int main(int argc, char* argv[]) {
 
 		if (new_lidar || new_top_sonar || new_bottom_sonar) {
 		  obstacle_list.clear();
-
+/*
 			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
@@ -250,7 +256,7 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(w_a);
 				obstacle_list.push_back(w_b);
 			}
-
+*/
       // also store the "floor" and "ceiling" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
@@ -262,6 +268,7 @@ int main(int argc, char* argv[]) {
 			Obstacle3d floor_b(tr, tl, bl, normal);
 			obstacle_list.push_back(floor_a);
 			obstacle_list.push_back(floor_b);
+/*
 			tr <<  50.0,  50.0, top_sonar_dist;
 			br << -50.0,  50.0, top_sonar_dist;
 			tl <<  50.0, -50.0, top_sonar_dist;
@@ -269,8 +276,9 @@ int main(int argc, char* argv[]) {
       normal << 0,0,-1;
 			Obstacle3d ceil_a(tr, br, bl, normal);
 			Obstacle3d ceil_b(tr, tl, bl, normal);
-			//obstacle_list.push_back(ceil_a);
-	    //obstacle_list.push_back(ceil_b);
+			obstacle_list.push_back(ceil_a);
+	    obstacle_list.push_back(ceil_b);
+*/
 
 			if (new_lidar) { new_lidar = false; }
       if (new_bottom_sonar) { new_bottom_sonar = false; }
@@ -280,7 +288,10 @@ int main(int argc, char* argv[]) {
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 		nh.getParam("/pca_on", pca_enabled);
 
-		quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled);
+    quad.SetVoltage(voltage);
+		if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
+		  ROS_INFO("Collision");
+		}
 
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;

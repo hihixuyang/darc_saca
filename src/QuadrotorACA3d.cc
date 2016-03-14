@@ -40,13 +40,16 @@ Eigen::Vector3f QuadrotorACA3d::sensing_noise(void) {
 	return SampleGaussian(Eigen::Vector3f::Zero(), Z_);
 }  // sensing_noise
 
-void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
+bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 																		 std::vector<Obstacle3d>& obstacle_list,
                                      int flag) {
 	set_desired_u(desired_input);
 	ResetDeltaU();
-	bool found_collision;
+
+	bool found_collision = false;
+	bool collision_flag = false;
 	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
+
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -54,12 +57,21 @@ void QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 																				potential_colliding_planes);
 		if (!found_collision)
 			break;
+    else if (loop_index == 0)
+      collision_flag = true;
 
 		CalculateDeltaU();
 		ClearHalfplanes();
 	}
+
 	u_ = desired_u_ + delta_u_;
+
+	return collision_flag;
 }  // AvoidCollision
+
+void QuadrotorACA3d::SetVoltage(float voltage) {
+  voltage_ = voltage;
+}  // SetVoltage
 
 void QuadrotorACA3d::set_desired_u(const Input& desired_u) {
   desired_u_ = desired_u;
@@ -109,23 +121,19 @@ float QuadrotorACA3d::sigma(const Position& normal) {
   return VarianceProjection(Mtau_.block(0,0,3,3) + Z_, normal);
 }  // sigma
 
-void QuadrotorACA3d::Linearize(const State& x, const Input& u) {
-	float j_step = 0.0009765625;
+void QuadrotorACA3d::
+Linearize(const State& x, const Input& u) {
+	static const float j_step = 0.0009765625;
 	p_star_[0] = x.head(3);
-	Mtau_ = XXmat::Zero();
 	// Loop over all timesteps
 	for (size_t time_step = 1; time_step < static_cast<size_t>(time_horizon_/dt_);
 			 time_step++) {
 		if (time_step == 1) {
 			g_ = RobotG(x, u);
-			FindStateJacobian(x, u);
 		} else {
 			g_ = RobotG(g_, u);
-			FindStateJacobian(g_, u);
 		}
 		p_star_[time_step] = g_.head(3);
-		// OFF FOR DETERMINISTIC MotionVarianceIntegration();  // Update Mtau_
-		// Loop over input dimension and calculate numerical Jacobian
     for (int dim = 0; dim < 3; ++dim) {
 			Input up = u;
 			up[dim] += j_step;
@@ -163,7 +171,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.3f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.0002f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;
@@ -242,7 +250,7 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 }
 
 void QuadrotorACA3d::CalculateDeltaU(void) {
-	float max_speed = 5.0;
+	static const float max_speed = 5.0;
 	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
 	Vector3 pref_v(0.0, 0.0, 0.0);
 	Vector3 new_v;
@@ -252,8 +260,8 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	if (plane_fail < halfplanes_.size())
 		linearProgram4(halfplanes_, plane_fail, max_speed, new_v);
 
-	delta_u_[0] += new_v.x();
-	delta_u_[1] += new_v.y();
+//	delta_u_[0] += new_v.x();
+	//delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
 }  // CalculateDeltaU
 

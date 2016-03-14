@@ -6,35 +6,23 @@
 QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// Input = [r_x, r_y, v_z, v_w]
-	// Control about roll, pitch, yaw rate
 	Input u_sat = u;
 	for (int u_index = 0; u_index < 4; ++u_index) {
 	  u_sat[u_index] = (u_sat[u_index] < -1.0) ? -1.0 : ((u_sat[u_index] > 1.0) ? 1.0 : u_sat[u_index]);
 	}
 
 	// State = [pos vel orient angular_vel]
-  Eigen::Vector3f g(0,0,9.812);
-  Eigen::Vector3f vel = x.segment(3,3);
-  Eigen::Vector3f r = x.segment(6,3);
-  Eigen::Vector3f w = x.segment(9,3);
-  float cx = cos(x[6]);
-  float sx = sin(x[6]);
-  float cy = cos(x[7]);
-  float sy = sin(x[7]);
-  float cz = cos(x[8]);
-  float sz = sin(x[8]);
+  static const float kdrag = 0.15;
+  static const float mass = 1.42;
 
-  float kdrag = 0.75;
-  float mass = 1.42;
-  Eigen::Matrix3f R;
-  R << cz*cy, -sz*cy + cz*sy*sx, sz*sx + cz*sy*cx,
-       sz*cy, cz*cx + sz*sy*sx, -cz*sx + sz*sy*cx,
-       -sy, cy*sx, cy*cx;
- 
   // Convert from an input of -1,1 into a thrust value in N
   float t = 0.0, t1 = 0.0, t2 = 0.0;
   float v1 = 0.0, v2 = 0.0;
   float uz = u_sat[2];
+
+  // Debugging throttle
+  float eps = 0.98;
+  uz = (uz < -eps) ? -eps : ((uz > eps) ? eps : uz);
   if (voltage_ <= 9.9) {
     t = -1.001*pow(uz,3) - 0.0111*pow(uz,2) + 3.7265*uz + 2.8065;
   } else if (voltage_ > 9.9 && voltage_ <= 12.6) {
@@ -68,11 +56,26 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
     t = -1.1513*pow(uz,3) - 0.0229*pow(uz,2) + 4.8271*uz + 3.9808;
   }
 
-  Eigen::Vector3f thrust(0, 0, 4.0 * t / mass);
+  static const float K = 1.1;
+  t = K * 4.0 * t / mass;
+
+  float cx = cos(x[6]);
+  float sx = sin(x[6]);
+  float cy = cos(x[7]);
+  float sy = sin(x[7]);
+  float cz = cos(x[8]);
+  float sz = sin(x[8]);
+
+  Eigen::Vector3f RT(t*(cx*sy*cz + sx*sz), t*(cx*sy*sz - sx*cz), t*(cx*cy));
+
+  Eigen::Vector3f g(0,0,9.812);
+  Eigen::Vector3f vel = x.segment(3,3);
+  Eigen::Vector3f r = x.segment(6,3);
+  Eigen::Vector3f w = x.segment(9,3);
 
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = R*thrust - g - kdrag*vel / mass;
+	x_dot.segment(3,3) = RT - g - kdrag*vel / mass;
 	x_dot.segment(6,3) = w;
 	x_dot[9]  = kpx_*(u_sat[0] - r[0]) - kdx_*w[0];
 	x_dot[10] = kpy_*(u_sat[1] - r[1]) - kdy_*w[1];
@@ -122,7 +125,7 @@ void QuadrotorBase::Setup(void) {
   R_ = ZZmat::Zero();
   R_.block<2,2>(0,0) = 0.1*0.1*Eigen::Matrix2f::Identity();  // rx, ry
   R_.block<3,3>(2,2) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
-  R_.block<3,3>(5,5) = 0.35*0.35*Eigen::Matrix3f::Identity();  // vx, vy, vz
+  R_.block<3,3>(5,5) = 0.1*0.1*Eigen::Matrix3f::Identity();  // vx, vy, vz
 
   // Observation mapping
 	H_ = ZXmat::Zero();
@@ -137,6 +140,7 @@ void QuadrotorBase::Setup(void) {
   // Robot/integration parameters
   dt_ = 0.02;
   radius_ = 0.3556;
+  voltage_ = 11.1;
 }  // Setup
 
 QuadrotorBase::Position QuadrotorBase::true_position(void) {
