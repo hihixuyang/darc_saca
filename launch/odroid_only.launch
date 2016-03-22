@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="fake_input" type="fake_input_node" name="Fake_RC_Input"/>
+  <node pkg="fake_sonar" type="fake_sonar_node" name="Fake_Sonar_Inputs"/>
+  
+  <node pkg="darc_rc_fly" type="darc_rc_fly_node" name="RC_Input" output="screen" respawn="true"/>
+
+	<rosparam file="$(find darc_saca)/config/saca.yaml" command="load"/>
+	<node pkg="darc_saca" type="darc_saca_3d_node" name="SACA_3D" output="screen" respawn="true"/>-->
+
+</launch>
