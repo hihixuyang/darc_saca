@@ -53,8 +53,8 @@ void top_sonar_callback(const std_msgs::Float32& top_in) {
 // Read in the reading from the bottom facing sonar
 float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
-void bottom_sonar_callback(const std_msgs::Float32& bottom_in) {
-	bottom_sonar_dist = -bottom_in.data; // negative data since it's below quad
+void bottom_sonar_callback(const sensor_msgs::Range& bottom_in) {
+ 	bottom_sonar_dist = -bottom_in.range; // negative data since it's below quad
   new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 	// read the top and bottom sonar readings which will be ADC on hardware
 	ros::Subscriber top_sonar = nh.subscribe("top_sonar_reading",1,
 																					 top_sonar_callback);
-	ros::Subscriber bottom_sonar = nh.subscribe("bottom_sonar_reading",1,
+	ros::Subscriber bottom_sonar = nh.subscribe("/mavros/px4flow/ground_distance",1,
 																							bottom_sonar_callback);
 
   // Read velocity estimates from pixhawk
@@ -117,6 +117,9 @@ int main(int argc, char* argv[]) {
   // Publish the estimated state for debugging
   ros::Publisher p_pub = nh.advertise<geometry_msgs::Twist>("est_pos", 1);
   ros::Publisher v_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
+
+  // Publish the desired velocity
+  ros::Publisher vz_pub = nh.advertise<std_msgs::Float32>("des_vel", 1);
 
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
@@ -198,15 +201,14 @@ int main(int argc, char* argv[]) {
 			range_list.clear();
 
 			//full_laser_points.points.clear();
-			float theta_rel = laser_in.angle_min;
-
+			float theta_rel = -M_PI / 4.0;
 			Eigen::Vector2f tmp_point;
-			for (int data_index = 0; data_index < laser_in.ranges.size();
-					 ++data_index) {
-			  if (laser_in.ranges[data_index] <= 6.0) {
-  				range_list.push_back(laser_in.ranges[data_index]);
-				  tmp_point[0] =  range_list.back()*cos(theta_rel);
-  				tmp_point[1] = -range_list.back()*sin(theta_rel);
+			for (std::vector<float>::iterator it = laser_in.ranges.begin();
+			     it != laser_in.ranges.end(); ++it) {
+			  if ((*it) <= 7.0) {
+  				range_list.push_back(*it);
+				  tmp_point[0] =  (*it)*cos(theta_rel);
+  				tmp_point[1] = -(*it)*sin(theta_rel);
   				full_point_list.push_back(tmp_point);
         }
 				theta_rel += laser_in.angle_increment;
@@ -223,19 +225,19 @@ int main(int argc, char* argv[]) {
 			minkowski_point_list.clear();
 			minkowski_point_list = minkowski_points.ReturnMinkowskiSum(0);
     }
-
+/*
     if (new_bottom_sonar) {
 			bottom_sonar_dist = (bottom_sonar_dist + radius);
     }
-
+*/
     if (new_top_sonar) {
       top_sonar_dist = (top_sonar_dist - radius);
     }
 
 		if (new_lidar || new_top_sonar || new_bottom_sonar) {
 		  obstacle_list.clear();
-/*
-			for (int index = 1; index < minkowski_point_list.size(); ++index) {
+
+			for (int index = 1; 0 && index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
 				tr << minkowski_point_list[index][0],
@@ -256,7 +258,7 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(w_a);
 				obstacle_list.push_back(w_b);
 			}
-*/
+
       // also store the "floor" and "ceiling" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
@@ -286,21 +288,43 @@ int main(int argc, char* argv[]) {
 		}
 
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
-		nh.getParam("/pca_on", pca_enabled);
 
+		nh.getParam("/pca_on", pca_enabled);
     quad.SetVoltage(voltage);
-		if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
-		  ROS_INFO("Collision");
-		}
+    if (bottom_sonar_dist < -0.1) {
+  		if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
+  		  ROS_ERROR("Collision");
+  		}
+    }
 
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;
     u_out.angular.x = u_new[0];
     u_out.angular.y = u_new[1];
-    u_out.linear.z = u_new[2];
     u_out.angular.z = yaw_input;
-    u_pub.publish(u_out);
+    //u_out.linear.z = u_new[2];
 
+    static const float max_climb_rate = 0.5;  // m/s
+    u_new[2] = max_climb_rate * u_new[2];
+    std_msgs::Float32 vz_out;
+    vz_out.data = u_new[2];
+    vz_pub.publish(vz_out);
+
+    static const float Kp = 2.0, Ki = 0.05;
+    float err = u_new[2] - x_hat[5];
+    static float int_err = 0.0;
+    int_err += err;
+    float effort = Kp * err + Ki * int_err;
+    if (effort >=  1.0) {  // Positive windup
+      int_err -= err;
+      effort = 1.0;
+    } else if (effort <= -1.0) {  // Negative windup
+      int_err -= err;
+      effort = -1.0;
+    }
+    u_out.linear.z = effort;
+
+    u_pub.publish(u_out);
 		loop_rate.sleep();
 	}
 	return 0;

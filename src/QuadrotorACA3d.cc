@@ -49,7 +49,6 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	bool found_collision = false;
 	bool collision_flag = false;
 	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
-
 		ForwardPrediction();
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
@@ -171,7 +170,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.0002f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.6f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;
@@ -195,7 +194,7 @@ std::vector<int> QuadrotorACA3d::FindPotentialCollidingPlanes(
   for (int obstacle_index = 0; obstacle_index < obstacle_list.size();
 			++obstacle_index) {
 		if (!obstacle_list[obstacle_index].IsTranslatedSeeable(desired_position())
-					&& obstacle_list[obstacle_index].IsTranslatedSeeable(Position::Zero())) {
+				&& obstacle_list[obstacle_index].IsTranslatedSeeable(Position::Zero())) {
 			potential_colliding_obstacle_indices.push_back(obstacle_index);
 		}
 	}
@@ -222,7 +221,7 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 			bool p1 = obstacle_list[index_list[plane_index]].normal().transpose() *
 				(desired_position - obstacle_list[index_list[plane_index]].translated_vertices(0)) < 0.0;
 			if (p0 && p1) {
-				// Check the segment for a collisions	
+				// Check the segment for a collisions
 				if (obstacle_list[index_list[plane_index]].IsTranslatedIntersecting(
 							current_position,
 							desired_position)) {
@@ -245,8 +244,8 @@ bool QuadrotorACA3d::IsThereACollision(std::vector<Obstacle3d>& obstacle_list,
 	// If a collision was found, the loop was exited early and
 	// trajectory_index < static_cast<int>(time_horizon_/dt_) and the
 	// method should return true that a collision was found,
-	// otherwise the for loop exited on the condition. 
-	return trajectory_index < static_cast<int>(time_horizon_/dt_); 
+	// otherwise the for loop exited on the condition.
+	return trajectory_index < static_cast<int>(time_horizon_/dt_);
 }
 
 void QuadrotorACA3d::CalculateDeltaU(void) {
@@ -254,7 +253,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	//Vector3 pref_v(-delta_u_[0], -delta_u_[1], -delta_u_[2]);
 	Vector3 pref_v(0.0, 0.0, 0.0);
 	Vector3 new_v;
-	
+
 	size_t plane_fail = linearProgram3(halfplanes_, max_speed,
 																		 pref_v, false, new_v);
 	if (plane_fail < halfplanes_.size())

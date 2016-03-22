@@ -14,15 +14,13 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 	// State = [pos vel orient angular_vel]
   static const float kdrag = 0.15;
   static const float mass = 1.42;
-
+/*
   // Convert from an input of -1,1 into a thrust value in N
   float t = 0.0, t1 = 0.0, t2 = 0.0;
   float v1 = 0.0, v2 = 0.0;
   float uz = u_sat[2];
 
-  // Debugging throttle
-  float eps = 0.98;
-  uz = (uz < -eps) ? -eps : ((uz > eps) ? eps : uz);
+  voltage_ = 11.1;
   if (voltage_ <= 9.9) {
     t = -1.001*pow(uz,3) - 0.0111*pow(uz,2) + 3.7265*uz + 2.8065;
   } else if (voltage_ > 9.9 && voltage_ <= 12.6) {
@@ -56,8 +54,13 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
     t = -1.1513*pow(uz,3) - 0.0229*pow(uz,2) + 4.8271*uz + 3.9808;
   }
 
-  static const float K = 1.1;
-  t = K * 4.0 * t / mass;
+  t = 1.05 * 4.0 * t / mass;
+*/
+
+  static const float max_climb_rate = 0.5;
+
+  static const float Kp = 5.0;
+  float t = Kp * (max_climb_rate * u_sat[2] - x[5]);
 
   float cx = cos(x[6]);
   float sx = sin(x[6]);
@@ -65,8 +68,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   float sy = sin(x[7]);
   float cz = cos(x[8]);
   float sz = sin(x[8]);
-
-  Eigen::Vector3f RT(t*(cx*sy*cz + sx*sz), t*(cx*sy*sz - sx*cz), t*(cx*cy));
+  Eigen::Vector3f T(t*(cx*sy*cz + sx*sz), t*(cx*sy*sz - sx*cz), t*(cx*cy));
 
   Eigen::Vector3f g(0,0,9.812);
   Eigen::Vector3f vel = x.segment(3,3);
@@ -75,7 +77,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = RT - g - kdrag*vel / mass;
+	x_dot.segment(3,3) = T;// - g - kdrag*vel / mass;
 	x_dot.segment(6,3) = w;
 	x_dot[9]  = kpx_*(u_sat[0] - r[0]) - kdx_*w[0];
 	x_dot[10] = kpy_*(u_sat[1] - r[1]) - kdy_*w[1];
@@ -143,42 +145,13 @@ void QuadrotorBase::Setup(void) {
   voltage_ = 11.1;
 }  // Setup
 
-QuadrotorBase::Position QuadrotorBase::true_position(void) {
-	return x_.head(3);
-}  // true_position
-
-QuadrotorBase::Position QuadrotorBase::est_position(void) {
-  return x_hat_.head(3);
-}  // est_position
-
-float QuadrotorBase::true_speed(void) {
-	return x_.segment(3,3).norm();
-}  // true_speed
-
-float QuadrotorBase::est_speed(void) {
-	return x_hat_.segment(3,3).norm();
-}  // est_speed
-
-float QuadrotorBase::true_roll(void) {
-  return x_[6];
-}  // true_roll
-
-float QuadrotorBase::est_roll(void) {
-  return x_hat_[6];
-}  // est_roll
-
-float QuadrotorBase::true_pitch(void) {
-  return x_[7];
-}  // true_pitch
-
-float QuadrotorBase::est_pitch(void) {
-  return x_hat_[7];
-}  // est_pitch
-
-float QuadrotorBase::true_yaw(void) {
-	return x_[8];
-}  // true_yaw
-
-float QuadrotorBase::est_yaw(void) {
-	return x_hat_[8];
-}  // est_yaw
+QuadrotorBase::Position QuadrotorBase::true_position(void) {	return x_.head(3); }
+QuadrotorBase::Position QuadrotorBase::est_position(void) { return x_hat_.head(3); }
+float QuadrotorBase::true_speed(void) {	return x_.segment(3,3).norm(); }
+float QuadrotorBase::est_speed(void) { return x_hat_.segment(3,3).norm(); }
+float QuadrotorBase::true_roll(void) { return x_[6]; }
+float QuadrotorBase::est_roll(void) { return x_hat_[6]; }
+float QuadrotorBase::true_pitch(void) { return x_[7]; }
+float QuadrotorBase::est_pitch(void) { return x_hat_[7]; }
+float QuadrotorBase::true_yaw(void) {	return x_[8]; }
+float QuadrotorBase::est_yaw(void) { return x_hat_[8]; }
