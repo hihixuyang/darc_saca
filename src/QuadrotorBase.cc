@@ -7,58 +7,12 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// Input = [r_x, r_y, v_z, v_w]
 	Input u_sat = u;
-	for (int u_index = 0; u_index < 4; ++u_index) {
-	  u_sat[u_index] = (u_sat[u_index] < -1.0) ? -1.0 : ((u_sat[u_index] > 1.0) ? 1.0 : u_sat[u_index]);
-	}
 
 	// State = [pos vel orient angular_vel]
   static const float kdrag = 0.15;
   static const float mass = 1.42;
-/*
-  // Convert from an input of -1,1 into a thrust value in N
-  float t = 0.0, t1 = 0.0, t2 = 0.0;
-  float v1 = 0.0, v2 = 0.0;
-  float uz = u_sat[2];
-
-  voltage_ = 11.1;
-  if (voltage_ <= 9.9) {
-    t = -1.001*pow(uz,3) - 0.0111*pow(uz,2) + 3.7265*uz + 2.8065;
-  } else if (voltage_ > 9.9 && voltage_ <= 12.6) {
-    if (voltage_ > 9.9 && voltage_ <= 10.4) {
-      v1 = 9.9; v2 = 10.4;
-      t1 = -1.001*pow(uz,3) - 0.0111*pow(uz,2) + 3.7265*uz + 2.8065;
-      t2 = -0.9799*pow(uz,3) + 0.11*pow(uz,2) + 3.8781*uz + 3.0388;
-    } else if (voltage_ > 10.4 && voltage_ <= 10.8) {
-      v1 = 10.4; v2 = 10.8;
-      t1 = -0.9799*pow(uz,3) + 0.11*pow(uz,2) + 3.8781*uz + 3.0388;
-      t2 = -0.9299*pow(uz,3) + 0.0314*pow(uz,2) + 3.9696*uz + 3.2548;
-    } else if (voltage_ > 10.8 && voltage_ <= 11.2) {
-      v1 = 10.8; v2 = 11.2;
-      t1 = -0.9299*pow(uz,3) + 0.0314*pow(uz,2) + 3.9696*uz + 3.2548;
-      t2 = -1.0775*pow(uz,3) - 0.0143*pow(uz,2) + 4.1772*uz + 3.3623;
-    } else if (voltage_ > 11.2 && voltage_ <= 11.7) {
-      v1 = 11.2; v2 = 11.7;
-      t1 = -1.0775*pow(uz,3) - 0.0143*pow(uz,2) + 4.1772*uz + 3.3623;
-      t2 = -1.0953*pow(uz,3) + 0.08*pow(uz,2) + 4.43682*uz + 3.4806;
-    } else if (voltage_ > 11.7 && voltage_ <= 12.2) {
-      v1 = 11.7; v2 = 12.2;
-      t1 = -1.0953*pow(uz,3) + 0.08*pow(uz,2) + 4.43682*uz + 3.4806;
-      t2 = -1.0203*pow(uz,3) + 0.05*pow(uz,2) + 4.6112*uz + 3.8287;
-    } else {
-      v1 = 12.2; v2 = 12.6;
-      t1 = -1.0203*pow(uz,3) + 0.05*pow(uz,2) + 4.6112*uz + 3.8287;
-      t2 = -1.1513*pow(uz,3) - 0.0229*pow(uz,2) + 4.8271*uz + 3.9808;
-    }
-    t = t1 + (voltage_ - v1) / (v2 - v1) * (t2 - t1);
-  } else {
-    t = -1.1513*pow(uz,3) - 0.0229*pow(uz,2) + 4.8271*uz + 3.9808;
-  }
-
-  t = 1.05 * 4.0 * t / mass;
-*/
 
   static const float max_climb_rate = 0.5;
-
   static const float Kp = 5.0;
   float t = Kp * (max_climb_rate * u_sat[2] - x[5]);
 
