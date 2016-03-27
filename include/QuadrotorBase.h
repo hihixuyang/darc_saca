@@ -34,9 +34,9 @@ protected:
   static const float max_angle_ = 20.0 * M_PI / 180.0; // rad
   static const float max_yaw_rate_ = 60.0 * M_PI / 180.0;  // rad/s
 
-  static const float kpx_ = 15.0;
+  static const float kpx_ = 150.0;
   static const float kdx_ = 2.5;
-  static const float kpy_ = 15.0;
+  static const float kpy_ = 150.0;
   static const float kdy_ = 2.5;
   static const float kpz_ = 5.0;
 

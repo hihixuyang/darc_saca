@@ -73,7 +73,8 @@ void QuadrotorBase::Setup(void) {
 	// Kalman process noise
   Q_ = XXmat::Zero();
   Q_.block<3,3>(0,0) = 0.6*0.6*Eigen::Matrix3f::Identity();  // px, py, pz
-  Q_.block<3,3>(3,3) = 0.5*0.5*Eigen::Matrix3f::Identity();  // vx, vy, vz
+  Q_.block<2,2>(3,3) = 0.25*0.25*Eigen::Matrix2f::Identity();  // vx, vy
+  Q_(5,5) = 0.4*0.4;  // vz
   Q_.block<3,3>(6,6) = 0.25*0.25*Eigen::Matrix3f::Identity();  // rx, ry, rz
   Q_.block<3,3>(9,9) = 0.4*0.4*Eigen::Matrix3f::Identity();  // wx, wy, wz
 
@@ -81,8 +82,9 @@ void QuadrotorBase::Setup(void) {
   R_ = ZZmat::Zero();
   R_.block<2,2>(0,0) = 0.1*0.1*Eigen::Matrix2f::Identity();  // rx, ry
   R_.block<3,3>(2,2) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
-  R_.block<3,3>(5,5) = 0.1*0.1*Eigen::Matrix3f::Identity();  // vx, vy, vz
-
+  R_.block<2,2>(5,5) = 1.0*1.0*Eigen::Matrix2f::Identity();  // vx, vy
+  R_(7,7) = 0.15*0.15;  // vz
+ 
   // Observation mapping
 	H_ = ZXmat::Zero();
   H_.block<2,2>(0,6) = Eigen::Matrix2f::Identity(); // rx, ry
@@ -109,3 +111,5 @@ float QuadrotorBase::true_pitch(void) { return x_[7]; }
 float QuadrotorBase::est_pitch(void) { return x_hat_[7]; }
 float QuadrotorBase::true_yaw(void) {	return x_[8]; }
 float QuadrotorBase::est_yaw(void) { return x_hat_[8]; }
+
+

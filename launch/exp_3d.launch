@@ -1,7 +1,9 @@
 <launch>
   <include file="$(find darc_custom_quad)/launch/custom_quad.launch"/>
     
-  <node pkg="odroid_sonar" type="odroid_sonar_node" name="Sonar_Inputs"/>-->
+  <!--<node pkg="odroid_sonar" type="odroid_sonar_node" name="Sonar_Inputs"/>-->
+  <node pkg="odroid_lidar" type="odroid_lidar_node" name="LidarInput"/>
+    
   <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
 
 	<rosparam file="$(find darc_saca)/config/saca.yaml" command="load"/>-->
