@@ -170,7 +170,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.6f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.5f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;
@@ -260,7 +260,7 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 		linearProgram4(halfplanes_, plane_fail, max_speed, new_v);
 
 //	delta_u_[0] += new_v.x();
-	//delta_u_[1] += new_v.y();
+//  delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
 }  // CalculateDeltaU
 

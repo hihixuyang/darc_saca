@@ -194,7 +194,12 @@ int main(int argc, char* argv[]) {
 		if (new_lidar || new_bottom_sonar) {
 		  obstacle_list.clear();
 
-			for (int index = 1; 0 && index < minkowski_point_list.size(); ++index) {
+      if (new_bottom_sonar) {
+        Eigen::Vector3f r_hat = quad.x_hat().segment(6,3);
+        bottom_sonar_dist = bottom_sonar_dist * cos(r_hat[0]) * cos(r_hat[1]);
+      }
+
+			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
 				tr << minkowski_point_list[index][0], minkowski_point_list[index][1], 20.0;
@@ -229,14 +234,14 @@ int main(int argc, char* argv[]) {
 
     Eigen::Vector4f u_new;
 		nh.getParam("/pca_on", pca_enabled);
-		if (bottom_sonar_dist < -0.2) {
+//		if (bottom_sonar_dist < -0.1) {
   	  if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
    	    ROS_ERROR("Collision");
       }
       u_new = quad.u();
-    } else {
-      u_new = u_curr;
-    }
+//    } else {
+//      u_new = u_curr;
+//    }
 
     geometry_msgs::Twist u_out;
     u_out.angular.x = u_new[0];
@@ -267,7 +272,7 @@ int main(int argc, char* argv[]) {
     nh.getParam("/ki_gain", Ki);
 
     static float effort = 0.0;
-    effort = Kp * err + Ki * int_err;
+    effort = 0.5 + Kp * err + Ki * int_err;
     if (effort >=  1.0) {  // Positive windup
       int_err -= err;
       effort = 1.0;
