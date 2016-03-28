@@ -259,8 +259,8 @@ void QuadrotorACA3d::CalculateDeltaU(void) {
 	if (plane_fail < halfplanes_.size())
 		linearProgram4(halfplanes_, plane_fail, max_speed, new_v);
 
-//	delta_u_[0] += new_v.x();
-//  delta_u_[1] += new_v.y();
+	delta_u_[0] += new_v.x();
+  delta_u_[1] += new_v.y();
 	delta_u_[2] += new_v.z();
 }  // CalculateDeltaU
 
