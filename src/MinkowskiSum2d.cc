@@ -137,11 +137,15 @@ void MinkowskiSum2d::RemoveOutliers(void) {
 	typedef Eigen::Vector3f vec3;
 	// if a segmented list was properly calculated will have matching beginning
 	// and end points. remove the end point to make it an unclosedloop
-	if (original_points_.size() > 0) {
+	if (original_points_.size() > 0) {  // only pop if there is is something there
 		original_points_.pop_back();
-		// Loop over each point in the list
+		
 		for (std::vector<vec2>::iterator it = original_points_.begin();
 				 it != original_points_.end(); ++it) {
+			// Take a current point, previous point, and next point to determine
+			// if a corner is convex or concave. If it is concave, the cross product
+			// of the vector between previous to current, and current ot next
+			// will have a positive z-component
 			vec3 a;
 			if (it != original_points_.begin()) {
 				a << (*std::prev(it))[0], (*std::prev(it))[1], 0.0;
@@ -157,22 +161,23 @@ void MinkowskiSum2d::RemoveOutliers(void) {
 				c << (*original_points_.begin())[0], (*original_points_.begin())[1], 0.0;
 			}
 			if ((c - a).cross(c - b)[2] > 0.0) {  // is corner concave?
-				// If the corner is concave, loop looking for elements within 2r of it
+				// If the corner is concave, find the nearest element within 2r of it
+				// Only need to loop wtih forward iterator since previous iterators
+				// will have already been checked on prior loops of the outer for
 				std::vector<vec2>::iterator nearest_it =
 					std::find_if(std::next(it), original_points_.end(),
 											 [it, this](vec2 point) {
 												 return ((*it) - point).norm() < 2.0 * this->radius_;
-											 });
-				if (nearest_it != original_points_.end()) {  // A point is found
-					if (std::distance(it, nearest_it) > 1) {  // nearest_it is ahead of it
-						// First check the forward loop;
+											 });  // lambda function comparing 2-norm between elements
+				if (nearest_it != original_points_.end()) {  // A point has been found
+					if (std::distance(it, nearest_it) > 1) {  // point can't be adjacent 
+						// First check the forward loop between it and nearest_it as a loop
 						vec2 p1 = *it;
 						int counter = 0;
 						for (auto next_it = std::next(it);
 								 next_it != std::next(nearest_it); ++next_it) {
 							vec2 p2 = *next_it;
-							if ((std::min(p1[1], p2[1]) < 0.0) &&
-									(std::max(p1[1], p2[1]) >= 0.0) &&
+							if ((std::min(p1[1], p2[1]) < 0.0) &&	(std::max(p1[1], p2[1]) >= 0.0) &&
 									(std::max(p1[0], p2[0]) >= 0.0) && (p1[1] != p2[1])) {
 								double xinterst = -p1[1] * (p2[0] - p1[0]) / (p2[1] - p1[1]) + p1[0];
 								if (p1[0] == p2[0] || 0.0 <= xinterst)
@@ -180,16 +185,18 @@ void MinkowskiSum2d::RemoveOutliers(void) {
 							}
 							p1 = p2;
 						}
-						if (counter % 2 != 0) {
-							// point is inside, use this circle
+						if (counter % 2 != 0) {  // if this is true, then the origin is inside
+							// of the loop defined by it through nearest_it, and the beginning
+							// and end of the original points should be removed
 							original_points_.erase(std::next(nearest_it), original_points_.end());
 							original_points_.erase(original_points_.begin(), it);
-						} else {
+						} else {  // otherwise, the origin is in the other loop and the points
+							// between it and nearest_it should be removed from the original list
 							original_points_.erase(std::next(it), nearest_it);
-						}
-					}
-				}
-			}
+						}  // if (count % 2 != 0)
+					}  // if (std::distance(it, nearest_it) > 1)
+				}  // if (nearest_it != original_points_.end())
+			}  // if ((c - a).cross(c - b)[2] > 0.0) 
 		}		
 	}
 }  // RemoveOutliers
