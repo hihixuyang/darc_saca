@@ -3,3 +3,4 @@
 
   <node pkg="darc_saca" type="data_processing_node" name="DataProcessing" output="screen"/>
   <node pkg="rosbag" type="play" name="Player" output="screen" args="-r 3 $(arg path)$(arg file).bag"/>
+</launch>

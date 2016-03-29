@@ -1,4 +1,6 @@
 #include "MinkowskiSum2d.h"
+#include <iterator>
+#include <algorithm>
 #include <iostream>
 
 MinkowskiSum2d::MinkowskiSum2d(void) {
@@ -14,8 +16,6 @@ MinkowskiSum2d::MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in,
 std::vector<Eigen::Vector2f> MinkowskiSum2d::ReturnMinkowskiSum(int flag) {
 	RemoveOutliers();
 	CalculateMinkowskiSum();
-	if (flag)
-		RemoveIntersections();
 	return minkowski_points_;
 }  // ReturnMinkowskiSum
 
@@ -128,117 +128,68 @@ std::vector<Eigen::Vector2f> MinkowskiSum2d::FindCircle(const Eigen::Vector2f& A
 // end of a narrow channel where the intersection point
 // Jumps to the other side away from the point at the end of the narrow
 // channel. When the channel is narrower than the value of 2r then
-// the point at the end should be an outlier.
+// the point at the end should be an outlier. To do this, start at a point
+// with a concave corner, then loop through the list until returning to the
+// current point and skipping any entries that are a distance less than
+// 2r from the current point
 void MinkowskiSum2d::RemoveOutliers(void) {
+	typedef Eigen::Vector2f vec2;
+	typedef Eigen::Vector3f vec3;
+	// if a segmented list was properly calculated will have matching beginning
+	// and end points. remove the end point to make it an unclosedloop
 	if (original_points_.size() > 0) {
 		original_points_.pop_back();
-		std::vector<Eigen::Vector2f>::iterator it = original_points_.begin();
-		Eigen::Vector3f A,B,C;
-		Eigen::Vector3f n_ab, n_bc;
-		for (int i = 0; i < original_points_.size(); ++i) {
-			// If first point, compare to end
-			if (i == 0) {
-				A << original_points_.back()[0], original_points_.back()[1], 0;
+		// Loop over each point in the list
+		for (std::vector<vec2>::iterator it = original_points_.begin();
+				 it != original_points_.end(); ++it) {
+			vec3 a;
+			if (it != original_points_.begin()) {
+				a << (*std::prev(it))[0], (*std::prev(it))[1], 0.0;
 			} else {
-				A << original_points_[i - 1][0], original_points_[i - 1][1], 0;
+				a << (*std::prev(original_points_.end()))[0],
+					(*std::prev(original_points_.end()))[1], 0.0;
 			}
-			B << original_points_[i][0], original_points_[i][1], 0;
-			if (i == original_points_.size() - 1) {
-				C << original_points_.front()[0], original_points_.front()[1], 0;
+			vec3 b; b << (*it)[0], (*it)[1], 0.0;
+			vec3 c;
+			if (it != std::prev(original_points_.end())) {
+				c << (*std::next(it))[0], (*std::next(it))[1], 0.0;
 			} else {
-				C << original_points_[i + 1][0], original_points_[i + 1][1], 0;
+				c << (*original_points_.begin())[0], (*original_points_.begin())[1], 0.0;
 			}
-			n_ab << -(A-B)[1], (A-B)[0], 0;
-			n_ab.normalize();
-			n_bc << -(B-C)[1], (B-C)[0], 0;
-			n_bc.normalize();
-			if (n_ab[0]*n_bc[1] - n_ab[1]*n_bc[0] < 0.0 &&
-					((A + radius_*n_ab - B).cross(C-B))[2] < 0.0 ) {
-				original_points_.erase(it + i);
-				i = 0;
-			}
-		}
-		original_points_.push_back(original_points_.front());
-	}
-}  // RemoveOutliers
-
-// Takes the solved Minkowski difference (without outliers) and removes
-// any intersections that may have occurred between lines
-void MinkowskiSum2d::RemoveIntersections(void) {
-	if (minkowski_points_.size() > 0) {
-		std::vector<Eigen::Vector2f>::iterator it = minkowski_points_.begin();
-		Eigen::Vector2f intersection_point;
-		for (int i = 1; i < minkowski_points_.size() - 1; ++i) {
-			for (int j = i + 2;
-					 ((i == 1 && j < minkowski_points_.size() - 1) ||
-						(i != 1 && j < minkowski_points_.size()));
-					 ++j) {
-
-				// DEBUGGING
-				std::cout << "i: " << i << ", j: " << j << std::endl;
-				// \DEBUGGING
-
-				if (FindIntersection(minkowski_points_[i - 1], minkowski_points_[i],
-														 minkowski_points_[j - 1], minkowski_points_[j],
-														 intersection_point) ) {
-					// DEBUGGING
-					std::cout << std::endl << "Intersection Found" << std::endl;
-					std::cout << "line a: (" << minkowski_points_[i-1].transpose()
-										<< "), (" << minkowski_points_[i].transpose() << ")" << std::endl;
-					std::cout << "line b: (" << minkowski_points_[j-1].transpose()
-										<< "), (" << minkowski_points_[j].transpose() << ")" << std::endl;
-					std::cout << "intersection: " << intersection_point.transpose() << std::endl;
-					for (int k = 0; k < minkowski_points_.size(); ++k) {
-						std::cout << minkowski_points_[k].transpose() << std::endl;
+			if ((c - a).cross(c - b)[2] > 0.0) {  // is corner concave?
+				// If the corner is concave, loop looking for elements within 2r of it
+				std::vector<vec2>::iterator nearest_it =
+					std::find_if(std::next(it), original_points_.end(),
+											 [it, this](vec2 point) {
+												 return ((*it) - point).norm() < 2.0 * this->radius_;
+											 });
+				if (nearest_it != original_points_.end()) {  // A point is found
+					if (std::distance(it, nearest_it) > 1) {  // nearest_it is ahead of it
+						// First check the forward loop;
+						vec2 p1 = *it;
+						int counter = 0;
+						for (auto next_it = std::next(it);
+								 next_it != std::next(nearest_it); ++next_it) {
+							vec2 p2 = *next_it;
+							if ((std::min(p1[1], p2[1]) < 0.0) &&
+									(std::max(p1[1], p2[1]) >= 0.0) &&
+									(std::max(p1[0], p2[0]) >= 0.0) && (p1[1] != p2[1])) {
+								double xinterst = -p1[1] * (p2[0] - p1[0]) / (p2[1] - p1[1]) + p1[0];
+								if (p1[0] == p2[0] || 0.0 <= xinterst)
+									counter++;
+							}
+							p1 = p2;
+						}
+						if (counter % 2 != 0) {
+							// point is inside, use this circle
+							original_points_.erase(std::next(nearest_it), original_points_.end());
+							original_points_.erase(original_points_.begin(), it);
+						} else {
+							original_points_.erase(std::next(it), nearest_it);
+						}
 					}
-					// \DEBUGGING
-
-					if (j == minkowski_points_.size() - 1) {
-						minkowski_points_.erase(it + i - 1);
-						minkowski_points_.erase(it);
-						minkowski_points_.pop_back();
-						minkowski_points_.insert(it, intersection_point);
-						minkowski_points_.push_back(intersection_point);
-					} else {
-						minkowski_points_.erase(it + i, it + j);
-						minkowski_points_.insert(it + i, intersection_point);
-					}
-					
-					std::cout << std::endl;
-					for (int k = 0; k < minkowski_points_.size(); ++k) {
-						std::cout << minkowski_points_[k].transpose() << std::endl;
-					}
-					int k;
-					std::cin >> k;
-					// \DEBUGGING
-					std::cout << "Removed Intersection" << std::endl;
-					i = 0;
-					break;
 				}
 			}
-			//std::cout << std::endl;
-		}
-	}		
-}  // RemoveIntersections
-
-// Returns true if an intersection between lines AB and CD occurs
-bool MinkowskiSum2d::FindIntersection(const Eigen::Vector2f& A,
-																			const Eigen::Vector2f& B,
-																			const Eigen::Vector2f& C,
-																			const Eigen::Vector2f& D,
-																			Eigen::Vector2f& P) {
-	float t_num = (A[0]-C[0])*(D[1]-C[1]) - (A[1]-C[1])*(D[0]-C[0]);
-	float u_num = (A[0]-C[0])*(B[1]-A[1]) - (A[1]-C[1])*(B[0]-A[0]);
-	float denom = (D[0]-C[0])*(B[1]-A[1]) - (D[1]-C[1])*(B[0]-A[0]);
-
-	float t = t_num/denom;
-	float u = u_num/denom;
-	float eps = 0.0;
-	if ((eps < t && t < 1-eps) && (eps < u && u < 1-eps)) {
-		P << A + t*(B-A);
-		return true;
+		}		
 	}
-	return false;
-}  // TestIntersection
- 
-	
+}  // RemoveOutliers

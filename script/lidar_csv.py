@@ -14,45 +14,52 @@ def scan_callback(data):
         scan_file.write(str(val)+'\n')
 
     raw_file.write(str(n)+'\n')
-    #theta_rel = data.angle_min
-    theta_rel = -math.pi / 4.0
+    theta_rel = math.pi / 4.0;
     for val in data.ranges:
         if val <= 6.0:
             raw_file.write(str(val*math.cos(theta_rel)) + ', ')
             raw_file.write(str(-val*math.sin(theta_rel)) + '\n')
-        theta_rel += data.angle_increment;
+        theta_rel -= data.angle_increment;
 
 def seg_callback(data):
     n = len(data.points)
     seg_file.write(str(n)+'\n')
     for point in data.points:
         seg_file.write(str(point.x) + ',' + str(point.y) + '\n')
-        
+
+def mink_callback(data):
+    n = len(data.points)
+    mink_file.write(str(n) + '\n')
+    for point in data.points:
+        mink_file.write(str(point.x) + ',' + str(point.y) + '\n')
+            
 def listener():
     rospy.init_node('listener', anonymous=True)
     rospy.Subscriber('scan', LaserScan, scan_callback)
     rospy.Subscriber('segmented_points', PointList, seg_callback)
+    rospy.Subscriber('minkowski_points', PointList, mink_callback)
     rospy.spin()
     
 if __name__ == '__main__':
     total_args = len(sys.argv)
     if (total_args <= 1) : 
-      print 'Enter file name'
-      name = ''
-      exit
+        print 'Enter file name'
+        name = ''
+        exit
     elif (total_args > 3) : 
         print 'Too Many Args'
         name = ''
         exit
     else:
         name = str(sys.argv[1])
-    scan_file = open('scan_' + name + '.csv', 'w')
-    raw_file = open('raw_' + name + '.csv', 'w')
-    seg_file = open('seg_' + name + '.csv', 'w')
-
-    listener()
-
-    scan_file.close()
-    raw_file.close()
-    seg_file.close()
+        scan_file = open('scan_' + name + '.csv', 'w')
+        raw_file = open('raw_' + name + '.csv', 'w')
+        seg_file = open('seg_' + name + '.csv', 'w')
+        mink_file = open('mink_' + name + '.csv', 'w')
+        listener()
+  
+        scan_file.close()
+        raw_file.close()
+        seg_file.close()
+        mink_file.close()
     
