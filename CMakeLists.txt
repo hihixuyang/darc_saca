@@ -175,6 +175,11 @@ add_executable(data_processing_node
   src/data_processing_node.cpp
 )
 
+add_executable(visualization_node
+	src/LidarSegment2d.cc
+	src/MinkowskiSum2d.cc
+	src/visualization_node.cpp
+)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(darc_saca_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -183,6 +188,7 @@ add_executable(data_processing_node
 target_link_libraries(darc_saca_3d_node ${catkin_LIBRARIES})
 target_link_libraries(darc_saca_2d_node  ${catkin_LIBRARIES})
 target_link_libraries(data_processing_node ${catkin_LIBRARIES})
+target_link_libraries(visualization_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
