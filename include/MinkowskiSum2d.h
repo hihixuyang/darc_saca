@@ -8,9 +8,9 @@ class MinkowskiSum2d {
 public:
 	MinkowskiSum2d(void);
 	MinkowskiSum2d(const std::vector<Eigen::Vector2f>& points_in, float radius);
-	std::vector<Eigen::Vector2f> ReturnMinkowskiSum(int = 1);
-		
-	
+	std::vector<Eigen::Vector2f> ReturnMinkowskiSum(int flag = 0);
+
+
 private:
 	std::vector<Eigen::Vector2f> original_points_;
 	std::vector<Eigen::Vector2f> minkowski_points_;
@@ -24,12 +24,6 @@ private:
 																					const Eigen::Vector2f&);
 	void CalculateMinkowskiSum(void);
 	void RemoveOutliers(void);
-	void RemoveIntersections(void);
-	bool FindIntersection(const Eigen::Vector2f&,
-												const Eigen::Vector2f&,
-												const Eigen::Vector2f&,
-												const Eigen::Vector2f&,
-												Eigen::Vector2f&);
 };
 
 #endif

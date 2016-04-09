@@ -1,8 +1,7 @@
 <launch>
   <include file="$(find darc_custom_quad)/launch/custom_quad.launch"/>
     
-  <!--<node pkg="odroid_sonar" type="odroid_sonar_node" name="Sonar_Inputs"/>-->
-  <node pkg="odroid_lidar" type="odroid_lidar_node" name="LidarLite"/>
+  <node pkg="odroid_lidar" type="odroid_lidar_node" name="LidarLite"/>-->
   
 	<rosparam file="$(find darc_saca)/config/saca.yaml" command="load"/>-->
 	<node pkg="darc_saca" type="darc_saca_3d_node" name="SACA_3D" output="screen" respawn="true"/>-->

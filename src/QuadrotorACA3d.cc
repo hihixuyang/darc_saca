@@ -50,6 +50,8 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	bool collision_flag = false;
 	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
 		ForwardPrediction();
+//		if (loop_index == 0)
+//		  std::cout << p_star_.back().transpose() << std::endl;
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -63,7 +65,9 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 		ClearHalfplanes();
 	}
 
-	u_ = desired_u_ + delta_u_;
+	u_[0] = desired_u_[0] + 0.9 * delta_u_[0];
+	u_[1] = desired_u_[1] + 0.9 * delta_u_[1];
+	u_[2] = desired_u_[2] + delta_u_[2];
 
 	return collision_flag;
 }  // AvoidCollision

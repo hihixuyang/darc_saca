@@ -3,6 +3,7 @@
 #include <geometry_msgs/Quaternion.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Range.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -21,6 +22,7 @@
 #include <math.h>
 #include <numeric>
 #include <string>
+#include <iterator>
 
 // Read in the desired input from the RC controller
 Eigen::Vector3f u_goal;
@@ -43,8 +45,8 @@ void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 // Read in the reading from the bottom facing sonar
 float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
-void bottom_sonar_callback(const std_msgs::Float32& range) {
-  bottom_sonar_dist = range.data;
+void bottom_sonar_callback(const std_msgs::Float32& range_in) {
+  bottom_sonar_dist = range_in.data - 0.2;
   new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
@@ -87,8 +89,6 @@ int main(int argc, char* argv[]) {
 	ros::Subscriber laser_scan = nh.subscribe("scan", 1, laser_callback);
 
 	// read the bottom sonar reading which will be ADC on hardware
-	//ros::Subscriber bottom_sonar = nh.subscribe("/mavros/px4flow/ground_distance", 1,	bottom_sonar_callback);
-  //ros::Subscriber bottom_sonar = nh.subscribe("/mavros/distance_sensor/hrlv_ez4_pub", 1, bottom_sonar_callback);
   ros::Subscriber bottom_sonar = nh.subscribe("bottom_lidar_reading", 1, bottom_sonar_callback);
 
   // Read velocity estimates from pixhawk
@@ -104,10 +104,10 @@ int main(int argc, char* argv[]) {
   ros::Publisher u_pub = nh.advertise<geometry_msgs::Twist>("new_u", 1);
 
   // Publish the desired velocity
-//  ros::Publisher vz_pub = nh.advertise<std_msgs::Float32>("des_vel", 1);
+  ros::Publisher vz_pub = nh.advertise<std_msgs::Float32>("des_vel", 1);
 
   // Publish the estimated velocity from the kalman filter
-//  ros::Publisher est_vel_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
+  ros::Publisher est_vel_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
 
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
@@ -145,19 +145,19 @@ int main(int argc, char* argv[]) {
   std::vector<Eigen::Vector2f> lidar_segmented_points;
   std::vector<Eigen::Vector2f> minkowski_point_list;
 
-//  geometry_msgs::Twist est_vel_out;
 	while(ros::ok()) {
 		ros::spinOnce();
     quad.ApplyKalman(observation);  // Update state estimate
 
-//    QuadrotorACA3d::State x_hat = quad.x_hat();
-//    est_vel_out.linear.x = x_hat[3];
-//    est_vel_out.linear.y = x_hat[4];
-//    est_vel_out.linear.z = x_hat[5];
-//    est_vel_out.angular.x = x_hat[9];
-//    est_vel_out.angular.y = x_hat[10];
-//    est_vel_out.angular.z = x_hat[11];
-//    est_vel_pub.publish(est_vel_out);
+    QuadrotorACA3d::State x_hat = quad.x_hat();
+    geometry_msgs::Twist est_vel_out;
+    est_vel_out.linear.x = x_hat[3];
+    est_vel_out.linear.y = x_hat[4];
+    est_vel_out.linear.z = x_hat[5];
+    est_vel_out.angular.x = x_hat[9];
+    est_vel_out.angular.y = x_hat[10];
+    est_vel_out.angular.z = x_hat[11];
+    est_vel_pub.publish(est_vel_out);
 
 		// Only process the lidar vertices if new data is received from
 		// the lidar node, preventing extra computation
@@ -165,17 +165,17 @@ int main(int argc, char* argv[]) {
 			full_point_list.clear();  // Full 2d points of the laser for split-and-merge
 			range_list.clear();  // list of distances for clustering
 
-			float theta_rel = -M_PI / 4.0;
+			float theta_rel = M_PI / 4.0;
 			Eigen::Vector2f tmp_point;
 			for (std::vector<float>::iterator it = laser_in.ranges.begin();
 			     it != laser_in.ranges.end(); ++it) {
-			  if ((*it) <= 7.0) {
+			  if ((*it) <= 6.0 && (*it) > radius) {
   				range_list.push_back(*it);
 				  tmp_point[0] =  (*it)*cos(theta_rel);
   				tmp_point[1] = -(*it)*sin(theta_rel);
   				full_point_list.push_back(tmp_point);
         }
-				theta_rel += laser_in.angle_increment;
+				theta_rel -= laser_in.angle_increment;
 			}
 
 			// Perform the segmentation algorithm to get the reduced vertex list
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
       // Run the approximate Minkowski difference on the segmented lidar data
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			minkowski_point_list.clear();
-			minkowski_point_list = minkowski_points.ReturnMinkowskiSum(0);
+			minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
     }
 
 		if (new_lidar || new_bottom_sonar) {
@@ -199,13 +199,16 @@ int main(int argc, char* argv[]) {
         bottom_sonar_dist = bottom_sonar_dist * cos(r_hat[0]) * cos(r_hat[1]);
       }
 
-			for (int index = 1; index < minkowski_point_list.size(); ++index) {
+      // If list is empty, don't call prev
+      auto end = minkowski_point_list.empty() ?
+        minkowski_point_list.end() : std::prev(minkowski_point_list.end());
+			for (auto it = minkowski_point_list.begin(); it != end; ++it) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
-				tr << minkowski_point_list[index][0], minkowski_point_list[index][1], 20.0;
-				br << minkowski_point_list[index][0], minkowski_point_list[index][1], bottom_sonar_dist;
-				tl << minkowski_point_list[index - 1][0], minkowski_point_list[index - 1][1], 20.0;
-				bl << minkowski_point_list[index - 1][0], minkowski_point_list[index - 1][1], bottom_sonar_dist;
+				tr << (*std::next(it))[0], (*std::next(it))[1], 50.0;
+				br << (*std::next(it))[0], (*std::next(it))[1], bottom_sonar_dist - 25.0;
+				tl << (*it)[0], (*it)[1], 50.0;
+				bl << (*it)[0], (*it)[1], bottom_sonar_dist - 25.0;
 				Eigen::Vector3f normal = ((tr - br).cross(bl - br)).normalized();
 				Obstacle3d w_a(tr, br, bl, normal);
 				Obstacle3d w_b(tr, tl, bl, normal);
@@ -231,30 +234,24 @@ int main(int argc, char* argv[]) {
 
 		Eigen::Vector4f u_curr(u_goal[0], u_goal[1], u_goal[2], yaw_input);
 
-
-    Eigen::Vector4f u_new;
 		nh.getParam("/pca_on", pca_enabled);
-//		if (bottom_sonar_dist < -0.1) {
-  	  if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
-   	    ROS_ERROR("Collision");
-      }
-      u_new = quad.u();
-//    } else {
-//      u_new = u_curr;
-//    }
+ 	  if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
+  	    ROS_ERROR("Collision");
+    }
 
+    Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;
     u_out.angular.x = u_new[0];
     u_out.angular.y = u_new[1];
     u_out.angular.z = yaw_input;
 
+    std_msgs::Float32 vz_out;
+    vz_out.data = u_new[2];
+    vz_pub.publish(vz_out);
+    
     static const float max_climb_rate = 0.5;  // m/s
     float v_des = max_climb_rate * u_new[2];
-//    std_msgs::Float32 vz_out;
-//    vz_out.data = v_des;
-//    vz_pub.publish(vz_out);
 
-    //static const float Kp = 2.0, Ki = 0.02;
     static float err = 0.0;
     err = v_des - quad.x_hat()[5];
 
@@ -266,13 +263,13 @@ int main(int argc, char* argv[]) {
     }
 
     // Read in gains of the controller for tuning
-    double Kp;
+    static double Kp;
     nh.getParam("/kp_gain", Kp);
-    double Ki;
+    static double Ki;
     nh.getParam("/ki_gain", Ki);
 
     static float effort = 0.0;
-    effort = 0.5 + Kp * err + Ki * int_err;
+    effort = 0.35 + Kp * err + Ki * int_err;
     if (effort >=  1.0) {  // Positive windup
       int_err -= err;
       effort = 1.0;

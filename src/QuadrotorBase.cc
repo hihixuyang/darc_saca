@@ -1,3 +1,4 @@
+
 #include "QuadrotorBase.h"
 #include <unsupported/Eigen/MatrixFunctions>
 
@@ -6,15 +7,9 @@
 QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// Input = [r_x, r_y, v_z, v_w]
-	Input u_sat = u;
-
 	// State = [pos vel orient angular_vel]
-  static const float kdrag = 0.15;
+  static const float kdrag = 0.1;
   static const float mass = 1.42;
-
-  static const float max_climb_rate = 0.5;
-  static const float Kp = 5.0;
-  float t = Kp * (max_climb_rate * u_sat[2] - x[5]);
 
   float cx = cos(x[6]);
   float sx = sin(x[6]);
@@ -22,6 +17,11 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   float sy = sin(x[7]);
   float cz = cos(x[8]);
   float sz = sin(x[8]);
+
+  static const float max_climb_rate = 0.5;
+  static const float Kp = 6.0;
+  float t = (Kp * (max_climb_rate * u[2] - x[5]) + 9.812)/(cx*cy);
+
   Eigen::Vector3f T(t*(cx*sy*cz + sx*sz), t*(cx*sy*sz - sx*cz), t*(cx*cy));
 
   Eigen::Vector3f g(0,0,9.812);
@@ -31,11 +31,11 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = T;// - g - kdrag*vel / mass;
+	x_dot.segment(3,3) = T - g;// - kdrag*vel;
 	x_dot.segment(6,3) = w;
-	x_dot[9]  = kpx_*(u_sat[0] - r[0]) - kdx_*w[0];
-	x_dot[10] = kpy_*(u_sat[1] - r[1]) - kdy_*w[1];
-	x_dot[11] = kpz_*(u_sat[3] - w[2]);
+	x_dot[9]  = kpx_*(max_angle_ * u[0] - r[0]) - kdx_*w[0];
+	x_dot[10] = kpy_*(max_angle_ * u[1] - r[1]) - kdy_*w[1];
+	x_dot[11] = kpz_*(max_yaw_rate_ * u[3] - w[2]);
 	return x_dot;
 }  // RobotF
 
@@ -72,18 +72,18 @@ void QuadrotorBase::Setup(void) {
 
 	// Kalman process noise
   Q_ = XXmat::Zero();
-  Q_.block<3,3>(0,0) = 0.6*0.6*Eigen::Matrix3f::Identity();  // px, py, pz
+  Q_.block<3,3>(0,0) = 0.5*0.5*Eigen::Matrix3f::Identity();  // px, py, pz
   Q_.block<2,2>(3,3) = 0.25*0.25*Eigen::Matrix2f::Identity();  // vx, vy
   Q_(5,5) = 0.4*0.4;  // vz
-  Q_.block<3,3>(6,6) = 0.25*0.25*Eigen::Matrix3f::Identity();  // rx, ry, rz
-  Q_.block<3,3>(9,9) = 0.4*0.4*Eigen::Matrix3f::Identity();  // wx, wy, wz
+  Q_.block<3,3>(6,6) = 0.3*0.3*Eigen::Matrix3f::Identity();  // rx, ry, rz
+  Q_.block<3,3>(9,9) = 0.45*0.45*Eigen::Matrix3f::Identity();  // wx, wy, wz
 
   // Kalman observation noise
   R_ = ZZmat::Zero();
   R_.block<2,2>(0,0) = 0.1*0.1*Eigen::Matrix2f::Identity();  // rx, ry
   R_.block<3,3>(2,2) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
   R_.block<2,2>(5,5) = 1.0*1.0*Eigen::Matrix2f::Identity();  // vx, vy
-  R_(7,7) = 0.15*0.15;  // vz
+  R_(7,7) = 0.25*0.25;  // vz
  
   // Observation mapping
 	H_ = ZXmat::Zero();
@@ -97,7 +97,7 @@ void QuadrotorBase::Setup(void) {
 
   // Robot/integration parameters
   dt_ = 0.02;
-  radius_ = 0.3556;
+  radius_ = 0.3556 * 0.5;
   voltage_ = 11.1;
 }  // Setup
 
