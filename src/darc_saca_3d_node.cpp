@@ -242,8 +242,8 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(time_horizon);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
-	x0[0] = 1.0;  
-	x0[1] = -1.0;
+	x0[0] = 9.0;//1.0;  
+	x0[1] = 14.0;//-1.0;
 	x0[2] = 1.2;
 	quad.set_x(x0);
 	
@@ -273,7 +273,7 @@ int main(int argc, char* argv[]) {
 			
 			full_laser_points.points.clear();
 			//float theta_rel = M_PI/4.0;
-			float theta_rel = laser_in.angle_min - quad.est_yaw();
+			float theta_rel = laser_in.angle_min;// - quad.est_yaw();
 			
 			Eigen::Vector2f tmp_point;
 			for (int data_index = 0; data_index < laser_in.ranges.size();
@@ -333,6 +333,8 @@ int main(int argc, char* argv[]) {
 			
 #ifdef ONBOARD_SENSING
 			obstacle_list.clear();
+			top_sonar_dist = 2.4 - quad.true_position()[2] - quad.radius();
+			bottom_sonar_dist = -quad.true_position()[2] + quad.radius();
 			for (int index = 1; index < minkowski_point_list.size(); ++index) {
 				// Store segmented lines as obstacles for collision avoidance
 				Eigen::Vector3f tr, br, tl, bl;
