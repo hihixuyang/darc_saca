@@ -50,8 +50,6 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	bool collision_flag = false;
 	for (int loop_index = 0; loop_index < 12 && flag; ++loop_index) {
 		ForwardPrediction();
-//		if (loop_index == 0)
-//		  std::cout << p_star_.back().transpose() << std::endl;
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -65,10 +63,7 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 		ClearHalfplanes();
 	}
 
-	u_[0] = desired_u_[0] + 0.9 * delta_u_[0];
-	u_[1] = desired_u_[1] + 0.9 * delta_u_[1];
-	u_[2] = desired_u_[2] + delta_u_[2];
-
+  u_ = desired_u_ + delta_u_;
 	return collision_flag;
 }  // AvoidCollision
 
@@ -158,7 +153,7 @@ Linearize(const State& x, const Input& u) {
 void QuadrotorACA3d::ForwardPrediction(void) {
 	State x_tilde = x_hat_;
 	x_tilde.head(3) = Position::Zero();  // For relative obstacle definition
-	x_tilde[8] = 0.0; // Eliminate yaw for relative heading
+	//x_tilde[8] = 0.0; // Eliminate yaw for relative heading
 	Linearize(x_tilde, desired_u_ + delta_u_);
 }  // ForwardPrediction
 
@@ -174,7 +169,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.5f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.6f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;

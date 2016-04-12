@@ -58,10 +58,10 @@ void QuadrotorBase::Setup(void) {
 
 	// True process noise (Does not have to be same as Kalman Q)
 	M_ = XXmat::Zero();
-  M_.block<3,3>(0,0) = 0.1*0.1*Eigen::Matrix3f::Identity(); // P
-	M_.block<3,3>(3,3) = 0.25*0.25*Eigen::Matrix3f::Identity(); //  V
-	M_.block<3,3>(6,6) = 0.1*0.1*Eigen::Matrix3f::Identity();
-	M_.block<3,3>(9,9) = 0.25*0.25*Eigen::Matrix3f::Identity();
+  M_.block<3,3>(0,0) = 0.1*0.1*Eigen::Matrix3f::Identity(); // p
+	M_.block<3,3>(3,3) = 0.25*0.25*Eigen::Matrix3f::Identity(); // v
+	M_.block<3,3>(6,6) = 0.1*0.1*Eigen::Matrix3f::Identity();  // r
+	M_.block<3,3>(9,9) = 0.25*0.25*Eigen::Matrix3f::Identity();  // w
 	M_ = XXmat::Zero();
 
 	// True observation noise (Does not have to be same as Kalman R)
@@ -81,15 +81,15 @@ void QuadrotorBase::Setup(void) {
   // Kalman observation noise
   R_ = ZZmat::Zero();
   R_.block<2,2>(0,0) = 0.1*0.1*Eigen::Matrix2f::Identity();  // rx, ry
-  R_.block<3,3>(2,2) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
-  R_.block<2,2>(5,5) = 1.0*1.0*Eigen::Matrix2f::Identity();  // vx, vy
-  R_(7,7) = 0.25*0.25;  // vz
- 
+  R_(2,2) = 0.3*0.3;  // rz
+  R_.block<3,3>(3,3) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
+  R_.block<2,2>(6,6) = 1.0*1.0*Eigen::Matrix2f::Identity();  // vx, vy
+  R_(8,8) = 0.25*0.25;  // vz
+
   // Observation mapping
 	H_ = ZXmat::Zero();
-  H_.block<2,2>(0,6) = Eigen::Matrix2f::Identity(); // rx, ry
-  H_.block<3,3>(2,9) = Eigen::Matrix3f::Identity(); // wx, wy, wz
-  H_.block<3,3>(5,3) = Eigen::Matrix3f::Identity(); // vx, vy, vz
+  H_.block<6,6>(0,6) = Eigen::Matrix<float,6,6>::Identity(); // rx, ry, rz, wx, wy, wz
+  H_.block<3,3>(6,3) = Eigen::Matrix3f::Identity(); // vx, vy, vz
 
   // Kalman initial covariances
   Pm_ = XXmat::Zero();

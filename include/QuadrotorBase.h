@@ -5,7 +5,7 @@
 
 #include <Eigen/Geometry>
 // Robot<X_DIM,U_DIM,Z_DIM,P_DIM>
-class QuadrotorBase : public Robot<12,4,8,3> {
+class QuadrotorBase : public Robot<12,4,9,3> {
 
 public:
 	typedef Eigen::Matrix<float, 3, 1> Position;

@@ -57,17 +57,23 @@ void imu_callback(const sensor_msgs::Imu& imu_in) {
   float z = imu_in.orientation.z;
   float w = imu_in.orientation.w;
 
-  observation[0] = atan2(2.0*y*z - 2.0*x*w, 1.0 - 2.0*x*x - 2.0*y*y);
-  observation[1] = atan2(-2.0*(x*z-y*w), sqrt(pow(1.0-2.0*y*y-2.0*z*z,2) + pow(2.0*(x*y-z*w),2)));
-  observation[2] = imu_in.angular_velocity.x;
-  observation[3] = imu_in.angular_velocity.y;
-  observation[4] = imu_in.angular_velocity.z;
+//  observation[0] = atan2(2.0*y*z - 2.0*x*w, 1.0 - 2.0*x*x - 2.0*y*y);
+//  observation[1] = atan2(-2.0*(x*z-y*w), sqrt(pow(1.0-2.0*y*y-2.0*z*z,2) + pow(2.0*(x*y-z*w),2)));
+//  observation[2] = imu_in.angular_velocity.x;
+//  observation[3] = imu_in.angular_velocity.y;
+//  observation[4] = imu_in.angular_velocity.z;
+  observation[0] = atan2(2.0*w*x + 2.0*y*z, 1.0 - 2.0*x*x - 2.0*y*y);  // rx
+  observation[1] = asin(2.0*w*y - 2.0*x*z);  // ry
+  observation[2] = atan2(2.0*w*z + 2.0*x*y, 1.0 - 2.0*y*y - 2.0*z*z);  // rz
+  observation[3] = imu_in.angular_velocity.x;  // wx
+  observation[4] = imu_in.angular_velocity.y;  // wy
+  observation[5] = imu_in.angular_velocity.z;  // wz
 }  // imu_callback
 
 void vel_callback(const geometry_msgs::TwistStamped& vel_in) {
-  observation[5] = vel_in.twist.linear.x;
-  observation[6] = vel_in.twist.linear.y;
-  observation[7] = vel_in.twist.linear.z;
+  observation[6] = vel_in.twist.linear.x;
+  observation[7] = vel_in.twist.linear.y;
+  observation[8] = vel_in.twist.linear.z;
 }  // vel_callback
 
 bool offboard_mode = false;
@@ -109,6 +115,9 @@ int main(int argc, char* argv[]) {
   // Publish the estimated velocity from the kalman filter
   ros::Publisher est_vel_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
 
+  // Publish the measured orientation for debugging
+  ros::Publisher r_pub = nh.advertise<geometry_msgs::Vector3>("meas_r", 1);
+
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
 	if (nh.getParam("/time_horizon", time_horizon)) {;}	else {
@@ -147,6 +156,13 @@ int main(int argc, char* argv[]) {
 
 	while(ros::ok()) {
 		ros::spinOnce();
+
+		geometry_msgs::Vector3 r_out;
+		r_out.x = observation[0];
+		r_out.y = observation[1];
+		r_out.z = observation[2];
+    r_pub.publish(r_out);
+
     quad.ApplyKalman(observation);  // Update state estimate
 
     QuadrotorACA3d::State x_hat = quad.x_hat();
@@ -165,7 +181,7 @@ int main(int argc, char* argv[]) {
 			full_point_list.clear();  // Full 2d points of the laser for split-and-merge
 			range_list.clear();  // list of distances for clustering
 
-			float theta_rel = M_PI / 4.0;
+			float theta_rel = M_PI / 4.0 - quad.est_yaw();
 			Eigen::Vector2f tmp_point;
 			for (std::vector<float>::iterator it = laser_in.ranges.begin();
 			     it != laser_in.ranges.end(); ++it) {
@@ -248,7 +264,7 @@ int main(int argc, char* argv[]) {
     std_msgs::Float32 vz_out;
     vz_out.data = u_new[2];
     vz_pub.publish(vz_out);
-    
+
     static const float max_climb_rate = 0.5;  // m/s
     float v_des = max_climb_rate * u_new[2];
 
