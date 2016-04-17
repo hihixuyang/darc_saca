@@ -8,21 +8,17 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 										 											 const QuadrotorBase::Input& u) {
 	// Input = [r_x, r_y, v_z, v_w]
 	// State = [pos vel orient angular_vel]
-  static const float kdrag = 0.1;
-  static const float mass = 1.42;
-
   float cx = cos(x[6]);
   float sx = sin(x[6]);
   float cy = cos(x[7]);
   float sy = sin(x[7]);
-  float cz = cos(x[8]);
-  float sz = sin(x[8]);
+  float t = 9.812;
+  Eigen::Vector3f T(t*(cx*sy), t*(-sx), t*(cx*cy));
 
   static const float max_climb_rate = 0.5;
   static const float Kp = 6.0;
-  float t = (Kp * (max_climb_rate * u[2] - x[5]) + 9.812)/(cx*cy);
-
-  Eigen::Vector3f T(t*(cx*sy*cz + sx*sz), t*(cx*sy*sz - sx*cz), t*(cx*cy));
+//  float t = (Kp * (max_climb_rate * u[2] - x[5]) + 9.812)/(cx*cy);
+  t = Kp * (max_climb_rate * u[2] - x[5]) / (cx * cy);
 
   Eigen::Vector3f g(0,0,9.812);
   Eigen::Vector3f vel = x.segment(3,3);
@@ -31,11 +27,12 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
 
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = T - g;// - kdrag*vel;
+	x_dot.segment(3,3) = T + t * Eigen::Vector3f::UnitZ() - g;
 	x_dot.segment(6,3) = w;
 	x_dot[9]  = kpx_*(max_angle_ * u[0] - r[0]) - kdx_*w[0];
 	x_dot[10] = kpy_*(max_angle_ * u[1] - r[1]) - kdy_*w[1];
-	x_dot[11] = kpz_*(max_yaw_rate_ * u[3] - w[2]);
+	//x_dot[11] = kpz_*(max_yaw_rate_ * u[3] - w[2]);
+	x_dot[11] = 0.0;
 	return x_dot;
 }  // RobotF
 
@@ -97,7 +94,7 @@ void QuadrotorBase::Setup(void) {
 
   // Robot/integration parameters
   dt_ = 0.02;
-  radius_ = 0.3556 * 0.5;
+  radius_ = 0.375;
   voltage_ = 11.1;
 }  // Setup
 

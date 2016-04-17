@@ -24,6 +24,9 @@
 #include <string>
 #include <iterator>
 
+#include <sensor_msgs/PointCloud.h>
+#include <geometry_msgs/Point32.h>
+
 // Read in the desired input from the RC controller
 Eigen::Vector3f u_goal;
 float yaw_input;
@@ -46,7 +49,7 @@ void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
 void bottom_sonar_callback(const std_msgs::Float32& range_in) {
-  bottom_sonar_dist = range_in.data - 0.2;
+  bottom_sonar_dist = range_in.data - 0.5;
   new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
@@ -57,17 +60,14 @@ void imu_callback(const sensor_msgs::Imu& imu_in) {
   float z = imu_in.orientation.z;
   float w = imu_in.orientation.w;
 
-//  observation[0] = atan2(2.0*y*z - 2.0*x*w, 1.0 - 2.0*x*x - 2.0*y*y);
-//  observation[1] = atan2(-2.0*(x*z-y*w), sqrt(pow(1.0-2.0*y*y-2.0*z*z,2) + pow(2.0*(x*y-z*w),2)));
-//  observation[2] = imu_in.angular_velocity.x;
-//  observation[3] = imu_in.angular_velocity.y;
-//  observation[4] = imu_in.angular_velocity.z;
   observation[0] = atan2(2.0*w*x + 2.0*y*z, 1.0 - 2.0*x*x - 2.0*y*y);  // rx
   observation[1] = asin(2.0*w*y - 2.0*x*z);  // ry
-  observation[2] = atan2(2.0*w*z + 2.0*x*y, 1.0 - 2.0*y*y - 2.0*z*z);  // rz
+  //observation[2] = atan2(2.0*w*z + 2.0*x*y, 1.0 - 2.0*y*y - 2.0*z*z) + M_PI;  // rz
+  observation[2] = 0.0;
   observation[3] = imu_in.angular_velocity.x;  // wx
   observation[4] = imu_in.angular_velocity.y;  // wy
-  observation[5] = imu_in.angular_velocity.z;  // wz
+  //observation[5] = imu_in.angular_velocity.z;  // wz
+  observation[5] = 0.0;
 }  // imu_callback
 
 void vel_callback(const geometry_msgs::TwistStamped& vel_in) {
@@ -86,7 +86,7 @@ void mode_callback(const mavros_msgs::State& state) {
 int main(int argc, char* argv[]) {
 	ros::init(argc, argv, "darc_saca_3d_node");
 	ros::NodeHandle nh;
-	ros::Rate loop_rate(100);
+	ros::Rate loop_rate(60);
 
 	// desired_u and desired_yaw comes from input mapping node
 	ros::Subscriber u_sub = nh.subscribe("desired_u", 1, input_callback);
@@ -117,7 +117,16 @@ int main(int argc, char* argv[]) {
 
   // Publish the measured orientation for debugging
   ros::Publisher r_pub = nh.advertise<geometry_msgs::Vector3>("meas_r", 1);
-
+/*
+  // BEGIN DEBUGGING
+  // Publish the trajectories for debugging and points
+  ros::Publisher raw_points_pub = nh.advertise<sensor_msgs::PointCloud>("raw_points", 1);
+  ros::Publisher seg_points_pub = nh.advertise<sensor_msgs::PointCloud>("seg_points", 1);
+  ros::Publisher mink_points_pub = nh.advertise<sensor_msgs::PointCloud>("mink_points", 1);
+  ros::Publisher init_traj_pub = nh.advertise<sensor_msgs::PointCloud>("init_traj", 1);
+  ros::Publisher fin_traj_pub = nh.advertise<sensor_msgs::PointCloud>("fin_traj", 1);
+  // END DEBUGGING
+  */
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
 	if (nh.getParam("/time_horizon", time_horizon)) {;}	else {
@@ -181,17 +190,17 @@ int main(int argc, char* argv[]) {
 			full_point_list.clear();  // Full 2d points of the laser for split-and-merge
 			range_list.clear();  // list of distances for clustering
 
-			float theta_rel = M_PI / 4.0 - quad.est_yaw();
+			float theta_rel = M_PI / 4.0; //- quad.est_yaw();
 			Eigen::Vector2f tmp_point;
 			for (std::vector<float>::iterator it = laser_in.ranges.begin();
 			     it != laser_in.ranges.end(); ++it) {
-			  if ((*it) <= 6.0 && (*it) > radius) {
+			  if ((*it) <= 6.0) {
   				range_list.push_back(*it);
-				  tmp_point[0] =  (*it)*cos(theta_rel);
-  				tmp_point[1] = -(*it)*sin(theta_rel);
+				  tmp_point[0] =  (*it)*sin(theta_rel);
+  				tmp_point[1] = -(*it)*cos(theta_rel);
   				full_point_list.push_back(tmp_point);
         }
-				theta_rel -= laser_in.angle_increment;
+				theta_rel += laser_in.angle_increment;
 			}
 
 			// Perform the segmentation algorithm to get the reduced vertex list
@@ -205,6 +214,37 @@ int main(int argc, char* argv[]) {
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			minkowski_point_list.clear();
 			minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
+/*
+			// BEGIN DEBUGGING
+			sensor_msgs::PointCloud raw_points_out;
+			geometry_msgs::Point32 point;
+			for (auto it = full_point_list.begin(); it != full_point_list.end(); ++it) {
+			  point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+			  raw_points_out.points.push_back(point);
+			}
+			raw_points_out.header.stamp = ros::Time();
+			raw_points_out.header.frame_id = "map";
+			raw_points_pub.publish(raw_points_out);
+			
+			sensor_msgs::PointCloud seg_points_out;
+			for (auto it = lidar_segmented_points.begin(); it != lidar_segmented_points.end(); ++it) {
+			  point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+			  seg_points_out.points.push_back(point);
+			}
+			seg_points_out.header.stamp = ros::Time();
+			seg_points_out.header.frame_id = "map";
+			seg_points_pub.publish(seg_points_out);
+
+      sensor_msgs::PointCloud mink_points_out;
+      for (auto it = minkowski_point_list.begin(); it != minkowski_point_list.end(); ++it) {
+        point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+        mink_points_out.points.push_back(point);
+      }
+      mink_points_out.header.stamp = ros::Time();
+      mink_points_out.header.frame_id = "map";
+      mink_points_pub.publish(mink_points_out);
+      // END DEBUGGING
+*/
     }
 
 		if (new_lidar || new_bottom_sonar) {
@@ -232,6 +272,10 @@ int main(int argc, char* argv[]) {
 				obstacle_list.push_back(w_b);
 			}
 
+      // BEGIN DEBUGGING
+//      obstacle_list.clear();
+      // END DEBUGGING
+      
       // also store the "floor" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
@@ -254,6 +298,31 @@ int main(int argc, char* argv[]) {
  	  if (quad.AvoidCollisions(u_curr, obstacle_list, pca_enabled)) {
   	    ROS_ERROR("Collision");
     }
+
+/*
+    // BEGIN DEBUGGING
+    geometry_msgs::Point32 point;
+    sensor_msgs::PointCloud init_traj_out;
+    std::vector<Eigen::Vector3f> init_traj = quad.InitialDesiredTrajectory();
+    for (auto it = init_traj.begin(); it != init_traj.end(); ++it) {
+      point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+      init_traj_out.points.push_back(point);
+    }
+    init_traj_out.header.stamp = ros::Time();
+    init_traj_out.header.frame_id = "map";
+    init_traj_pub.publish(init_traj_out);
+
+    sensor_msgs::PointCloud fin_traj_out;
+    std::vector<Eigen::Vector3f> fin_traj = quad.FinalDesiredTrajectory();
+    for (auto it = fin_traj.begin(); it != fin_traj.end(); ++it) {
+      point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+      fin_traj_out.points.push_back(point);
+    }
+    fin_traj_out.header.stamp = ros::Time();
+    fin_traj_out.header.frame_id = "map";
+    fin_traj_pub.publish(fin_traj_out);
+    // END DEBUGGING
+*/
 
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;
@@ -293,13 +362,14 @@ int main(int argc, char* argv[]) {
       int_err -= err;
       effort = -1.0;
     }
-    u_out.linear.z = effort;
 
     // DEBUGGING
     double pass;
     nh.getParam("/pass_through", pass);
     if (pass) {
       u_out.linear.z = u_new[2];
+    } else {
+      u_out.linear.z = effort;
     }
 
     u_pub.publish(u_out);

@@ -20,6 +20,9 @@ public:
 											 std::vector<Obstacle3d>& obstacle_list, int flag);
   void SetVoltage(float);
   
+  std::vector<Eigen::Vector3f> InitialDesiredTrajectory(void);
+  std::vector<Eigen::Vector3f> FinalDesiredTrajectory(void);
+  
 private:
 	float time_horizon_;  // Time horizon to look ahead for collisions in seconds
 	Input delta_u_;  // The change in input calculated from the algorithm
@@ -31,7 +34,7 @@ private:
 	Eigen::Matrix3f Z_;  // Obstacle sensing uncertainty
 
 	std::vector<Plane> halfplanes_;  // Set of halfplanes representing collisions
-	std::vector<Position> p_star_;  // Desired positions from trajectory
+	std::vector<Position> p_star_, p_star_init_;  // Desired positions from trajectory
 	std::vector<Eigen::Matrix3f> J_;  // Set of jacobians along trajectory
 
 	// Set the desired input from high level controller or user
