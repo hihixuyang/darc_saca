@@ -24,8 +24,8 @@
 #include <string>
 #include <iterator>
 
-#include <sensor_msgs/PointCloud.h>
 #include <geometry_msgs/Point32.h>
+#include <sensor_msgs/PointCloud.h>
 
 // Read in the desired input from the RC controller
 Eigen::Vector3f u_goal;
@@ -49,7 +49,7 @@ void laser_callback(const sensor_msgs::LaserScan& laser_input) {
 float bottom_sonar_dist = -50.0;
 bool new_bottom_sonar = false;
 void bottom_sonar_callback(const std_msgs::Float32& range_in) {
-  bottom_sonar_dist = range_in.data - 0.5;
+  bottom_sonar_dist = range_in.data - 0.15;
   new_bottom_sonar = true;
 }  // bottom_sonar_callback
 
@@ -117,16 +117,30 @@ int main(int argc, char* argv[]) {
 
   // Publish the measured orientation for debugging
   ros::Publisher r_pub = nh.advertise<geometry_msgs::Vector3>("meas_r", 1);
-/*
+
   // BEGIN DEBUGGING
   // Publish the trajectories for debugging and points
   ros::Publisher raw_points_pub = nh.advertise<sensor_msgs::PointCloud>("raw_points", 1);
+  sensor_msgs::PointCloud raw_points_out;
+  raw_points_out.header.frame_id = "map";
+  
   ros::Publisher seg_points_pub = nh.advertise<sensor_msgs::PointCloud>("seg_points", 1);
-  ros::Publisher mink_points_pub = nh.advertise<sensor_msgs::PointCloud>("mink_points", 1);
+  sensor_msgs::PointCloud seg_points_out;
+  seg_points_out.header.frame_id = "map";
+    
   ros::Publisher init_traj_pub = nh.advertise<sensor_msgs::PointCloud>("init_traj", 1);
+  sensor_msgs::PointCloud init_traj_out;
+  init_traj_out.header.frame_id = "map";
+
   ros::Publisher fin_traj_pub = nh.advertise<sensor_msgs::PointCloud>("fin_traj", 1);
+  sensor_msgs::PointCloud fin_traj_out;
+  fin_traj_out.header.frame_id = "map";
+
+  ros::Publisher vel_pub = nh.advertise<sensor_msgs::PointCloud>("vel_marker", 1);
+  sensor_msgs::PointCloud vel_out;
+  vel_out.header.frame_id = "map";  
   // END DEBUGGING
-  */
+
   // Read in the value of hte time horizon from the launch file
 	double time_horizon;
 	if (nh.getParam("/time_horizon", time_horizon)) {;}	else {
@@ -213,38 +227,39 @@ int main(int argc, char* argv[]) {
       // Run the approximate Minkowski difference on the segmented lidar data
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			minkowski_point_list.clear();
-			minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
-/*
+			//minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
+			minkowski_point_list = lidar_segmented_points;
+
 			// BEGIN DEBUGGING
-			sensor_msgs::PointCloud raw_points_out;
+			vel_out.points.clear();
 			geometry_msgs::Point32 point;
+			for (float i = 0; i < 1.05; i += 0.05) {
+  			point.x = i * x_hat[3]; 
+  			point.y = i * x_hat[4]; 
+  			point.z = i * x_hat[5];
+  			vel_out.points.push_back(point);
+  	}
+			vel_out.header.stamp = ros::Time();
+		  vel_pub.publish(vel_out);
+ 
+			raw_points_out.points.clear();
 			for (auto it = full_point_list.begin(); it != full_point_list.end(); ++it) {
-			  point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+			  point.x = (*it)[0]; point.y = (*it)[1];	point.z = 0.0;
 			  raw_points_out.points.push_back(point);
 			}
 			raw_points_out.header.stamp = ros::Time();
-			raw_points_out.header.frame_id = "map";
 			raw_points_pub.publish(raw_points_out);
-			
-			sensor_msgs::PointCloud seg_points_out;
+
+      seg_points_out.points.clear();
+      point.z = 0.0;
 			for (auto it = lidar_segmented_points.begin(); it != lidar_segmented_points.end(); ++it) {
-			  point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
+			  point.x = (*it)[0]; point.y = (*it)[1];
 			  seg_points_out.points.push_back(point);
 			}
 			seg_points_out.header.stamp = ros::Time();
-			seg_points_out.header.frame_id = "map";
 			seg_points_pub.publish(seg_points_out);
-
-      sensor_msgs::PointCloud mink_points_out;
-      for (auto it = minkowski_point_list.begin(); it != minkowski_point_list.end(); ++it) {
-        point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
-        mink_points_out.points.push_back(point);
-      }
-      mink_points_out.header.stamp = ros::Time();
-      mink_points_out.header.frame_id = "map";
-      mink_points_pub.publish(mink_points_out);
       // END DEBUGGING
-*/
+
     }
 
 		if (new_lidar || new_bottom_sonar) {
@@ -299,30 +314,27 @@ int main(int argc, char* argv[]) {
   	    ROS_ERROR("Collision");
     }
 
-/*
+
     // BEGIN DEBUGGING
-    geometry_msgs::Point32 point;
-    sensor_msgs::PointCloud init_traj_out;
+    init_traj_out.points.clear();
     std::vector<Eigen::Vector3f> init_traj = quad.InitialDesiredTrajectory();
+    geometry_msgs::Point32 point;
     for (auto it = init_traj.begin(); it != init_traj.end(); ++it) {
       point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
       init_traj_out.points.push_back(point);
     }
     init_traj_out.header.stamp = ros::Time();
-    init_traj_out.header.frame_id = "map";
     init_traj_pub.publish(init_traj_out);
 
-    sensor_msgs::PointCloud fin_traj_out;
+    fin_traj_out.points.clear();
     std::vector<Eigen::Vector3f> fin_traj = quad.FinalDesiredTrajectory();
     for (auto it = fin_traj.begin(); it != fin_traj.end(); ++it) {
       point.x = (*it)[0]; point.y = (*it)[1]; point.z = (*it)[2];
       fin_traj_out.points.push_back(point);
     }
     fin_traj_out.header.stamp = ros::Time();
-    fin_traj_out.header.frame_id = "map";
     fin_traj_pub.publish(fin_traj_out);
     // END DEBUGGING
-*/
 
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;

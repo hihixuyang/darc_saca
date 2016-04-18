@@ -50,12 +50,9 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 	bool collision_flag = false;
 	for (int loop_index = 0; loop_index < 24 && flag; ++loop_index) {
 		ForwardPrediction();
-//		if (!loop_index) {
-//		  std::cout << p_star_.back()[0] << ", " << p_star_.back()[1] << std::endl;
-//		}
-//    if (loop_index == 0) {
-//      p_star_init_ = p_star_;
-//    }
+    if (loop_index == 0) {
+      p_star_init_ = p_star_;
+    }
 		std::vector<int> potential_colliding_planes =
 			FindPotentialCollidingPlanes(obstacle_list);
 		found_collision = IsThereACollision(obstacle_list,
@@ -178,7 +175,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 1.0f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.75f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;

@@ -1,8 +1,9 @@
 kp_gain: 0.75
-ki_gain: 0.015
+ki_gain: 0.03
 
 pass_through: 0
 
 time_horizon: 3.0
-dist_thresh: 0.1
+dist_thresh: 0.15
 pca_on: 1
+

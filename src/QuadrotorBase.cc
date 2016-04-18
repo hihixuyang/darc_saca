@@ -25,9 +25,10 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   Eigen::Vector3f r = x.segment(6,3);
   Eigen::Vector3f w = x.segment(9,3);
 
+  float k_drag = 0.5;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = T + t * Eigen::Vector3f::UnitZ() - g;
+	x_dot.segment(3,3) = T + t * Eigen::Vector3f::UnitZ() - g - k_drag * vel;
 	x_dot.segment(6,3) = w;
 	x_dot[9]  = kpx_*(max_angle_ * u[0] - r[0]) - kdx_*w[0];
 	x_dot[10] = kpy_*(max_angle_ * u[1] - r[1]) - kdy_*w[1];
