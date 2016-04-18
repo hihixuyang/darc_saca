@@ -23,6 +23,7 @@
 #include <numeric>
 #include <string>
 #include <iterator>
+#include <algorithm>
 
 #include <geometry_msgs/Point32.h>
 #include <sensor_msgs/PointCloud.h>
@@ -113,6 +114,7 @@ int main(int argc, char* argv[]) {
   ros::Publisher vz_pub = nh.advertise<std_msgs::Float32>("des_vel", 1);
 
   // Publish the estimated velocity from the kalman filter
+  ros::Publisher est_pos_pub = nh.advertise<geometry_msgs::Twist>("est_pos", 1);
   ros::Publisher est_vel_pub = nh.advertise<geometry_msgs::Twist>("est_vel", 1);
 
   // Publish the measured orientation for debugging
@@ -123,11 +125,15 @@ int main(int argc, char* argv[]) {
   ros::Publisher raw_points_pub = nh.advertise<sensor_msgs::PointCloud>("raw_points", 1);
   sensor_msgs::PointCloud raw_points_out;
   raw_points_out.header.frame_id = "map";
-  
+
   ros::Publisher seg_points_pub = nh.advertise<sensor_msgs::PointCloud>("seg_points", 1);
   sensor_msgs::PointCloud seg_points_out;
   seg_points_out.header.frame_id = "map";
-    
+
+  ros::Publisher mink_points_pub = nh.advertise<sensor_msgs::PointCloud>("mink_points", 1);
+  sensor_msgs::PointCloud mink_points_out;
+  mink_points_out.header.frame_id = "map";
+ 
   ros::Publisher init_traj_pub = nh.advertise<sensor_msgs::PointCloud>("init_traj", 1);
   sensor_msgs::PointCloud init_traj_out;
   init_traj_out.header.frame_id = "map";
@@ -177,6 +183,15 @@ int main(int argc, char* argv[]) {
   std::vector<Eigen::Vector2f> lidar_segmented_points;
   std::vector<Eigen::Vector2f> minkowski_point_list;
 
+  // Moving average filter of inputs to smooth trajectory
+  const unsigned int rp_filter_size = 5;
+  std::vector<float> roll_filter(rp_filter_size);
+  std::vector<float> pitch_filter(rp_filter_size);
+  for (unsigned int index = 0; index < rp_filter_size; ++index) {
+    roll_filter[index] = 0.0;
+    pitch_filter[index] = 0.0;
+  }
+
 	while(ros::ok()) {
 		ros::spinOnce();
 
@@ -189,13 +204,20 @@ int main(int argc, char* argv[]) {
     quad.ApplyKalman(observation);  // Update state estimate
 
     QuadrotorACA3d::State x_hat = quad.x_hat();
-    geometry_msgs::Twist est_vel_out;
+    geometry_msgs::Twist est_pos_out, est_vel_out;
+    est_pos_out.linear.x = x_hat[0];
+    est_pos_out.linear.y = x_hat[1];
+    est_pos_out.linear.z = x_hat[2];
     est_vel_out.linear.x = x_hat[3];
     est_vel_out.linear.y = x_hat[4];
     est_vel_out.linear.z = x_hat[5];
+    est_pos_out.angular.x = x_hat[6];
+    est_pos_out.angular.y = x_hat[7];
+    est_pos_out.angular.z = x_hat[8];
     est_vel_out.angular.x = x_hat[9];
     est_vel_out.angular.y = x_hat[10];
     est_vel_out.angular.z = x_hat[11];
+    est_pos_pub.publish(est_pos_out);
     est_vel_pub.publish(est_vel_out);
 
 		// Only process the lidar vertices if new data is received from
@@ -227,21 +249,20 @@ int main(int argc, char* argv[]) {
       // Run the approximate Minkowski difference on the segmented lidar data
 			MinkowskiSum2d minkowski_points(lidar_segmented_points, radius);
 			minkowski_point_list.clear();
-			//minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
-			minkowski_point_list = lidar_segmented_points;
+			minkowski_point_list = minkowski_points.ReturnMinkowskiSum();
 
 			// BEGIN DEBUGGING
 			vel_out.points.clear();
 			geometry_msgs::Point32 point;
 			for (float i = 0; i < 1.05; i += 0.05) {
-  			point.x = i * x_hat[3]; 
-  			point.y = i * x_hat[4]; 
+  			point.x = i * x_hat[3];
+  			point.y = i * x_hat[4];
   			point.z = i * x_hat[5];
   			vel_out.points.push_back(point);
   	}
 			vel_out.header.stamp = ros::Time();
 		  vel_pub.publish(vel_out);
- 
+
 			raw_points_out.points.clear();
 			for (auto it = full_point_list.begin(); it != full_point_list.end(); ++it) {
 			  point.x = (*it)[0]; point.y = (*it)[1];	point.z = 0.0;
@@ -258,6 +279,14 @@ int main(int argc, char* argv[]) {
 			}
 			seg_points_out.header.stamp = ros::Time();
 			seg_points_pub.publish(seg_points_out);
+
+			mink_points_out.points.clear();
+      for (auto it = minkowski_point_list.begin(); it != minkowski_point_list.end(); ++it) {
+        point.x = (*it)[0]; point.y = (*it)[1];
+        mink_points_out.points.push_back(point);
+      }
+      mink_points_out.header.stamp = ros::Time();
+      mink_points_pub.publish(mink_points_out);
       // END DEBUGGING
 
     }
@@ -290,7 +319,7 @@ int main(int argc, char* argv[]) {
       // BEGIN DEBUGGING
 //      obstacle_list.clear();
       // END DEBUGGING
-      
+
       // also store the "floor" as a large obstacles
 			Eigen::Vector3f tr; tr <<  50.0, -50.0, bottom_sonar_dist;
 			Eigen::Vector3f br; br << -50.0, -50.0, bottom_sonar_dist;
@@ -314,7 +343,6 @@ int main(int argc, char* argv[]) {
   	    ROS_ERROR("Collision");
     }
 
-
     // BEGIN DEBUGGING
     init_traj_out.points.clear();
     std::vector<Eigen::Vector3f> init_traj = quad.InitialDesiredTrajectory();
@@ -335,7 +363,7 @@ int main(int argc, char* argv[]) {
     fin_traj_out.header.stamp = ros::Time();
     fin_traj_pub.publish(fin_traj_out);
     // END DEBUGGING
-
+/*
     Eigen::Vector4f u_new = quad.u();
     geometry_msgs::Twist u_out;
     u_out.angular.x = u_new[0];
@@ -383,8 +411,57 @@ int main(int argc, char* argv[]) {
     } else {
       u_out.linear.z = effort;
     }
+*/
 
+    Eigen::Vector4f u_new = quad.u();
+
+    static const float max_climb_rate = 0.5;  // m/s
+    static float err = 0.0;
+    err = max_climb_rate * u_new[2] - quad.x_hat()[5];
+
+    static float int_err = 0.0;
+    if (!offboard_mode) {
+      int_err = 0.0;
+    } else {
+      int_err += err;
+    }
+
+    static double Kp;
+    nh.getParam("/kp_gain", Kp);
+    static double Ki;
+    nh.getParam("/ki_gain", Ki);
+
+    static float effort = 0.0;
+    effort = 0.35 + Kp * err + Ki * int_err;
+    if (effort >= 1.0) {  // Positive windup
+      int_err -= err;
+      effort = 1.0;
+    } else if (effort <= -1.0) {  // Negative windup
+      int_err -= err;
+      effort = -1.0;
+    }
+
+    double pass_through;
+    nh.getParam("/pass_through", pass_through);
+    if (!pass_through) {
+      u_new[2] = effort;
+    }
+
+    // Pass roll and pitch through the moving-average filter
+    roll_filter.pop_back();
+    roll_filter.insert(roll_filter.begin(), u_new[0]);
+    pitch_filter.pop_back();
+    pitch_filter.insert(pitch_filter.begin(), u_new[1]);
+
+    geometry_msgs::Twist u_out;
+    u_out.angular.x = std::accumulate(roll_filter.begin(), roll_filter.end(), 0.0) /
+      static_cast<float>(rp_filter_size);
+    u_out.angular.y = std::accumulate(pitch_filter.begin(), pitch_filter.end(), 0.0) /
+      static_cast<float>(rp_filter_size);
+    u_out.linear.z = u_new[2];
+    u_out.angular.z = u_new[3];
     u_pub.publish(u_out);
+
 		loop_rate.sleep();
 	}
 	return 0;

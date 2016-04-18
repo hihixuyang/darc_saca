@@ -18,7 +18,7 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   static const float max_climb_rate = 0.5;
   static const float Kp = 6.0;
 //  float t = (Kp * (max_climb_rate * u[2] - x[5]) + 9.812)/(cx*cy);
-  t = Kp * (max_climb_rate * u[2] - x[5]) / (cx * cy);
+  t = Kp * (max_climb_rate * u[2] - x[5]);
 
   Eigen::Vector3f g(0,0,9.812);
   Eigen::Vector3f vel = x.segment(3,3);
