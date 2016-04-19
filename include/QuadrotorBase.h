@@ -30,7 +30,7 @@ public:
   void ApplyKalman(const Eigen::VectorXf& z);
 
 protected:
-  static constexpr float max_angle_ = 15.0 * M_PI / 180.0; // rad
+  static constexpr float max_angle_ = 10.0 * M_PI / 180.0; // rad
   static constexpr float max_yaw_rate_ = 60.0 * M_PI / 180.0;  // rad/s
 
   static constexpr float kpx_ = 150.0;

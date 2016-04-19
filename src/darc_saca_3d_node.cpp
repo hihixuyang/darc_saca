@@ -232,8 +232,8 @@ int main(int argc, char* argv[]) {
 			     it != laser_in.ranges.end(); ++it) {
 			  if ((*it) <= 6.0) {
   				range_list.push_back(*it);
-				  tmp_point[0] =  (*it)*sin(theta_rel);
-  				tmp_point[1] = -(*it)*cos(theta_rel);
+				  tmp_point[0] =  (*it) * sin(theta_rel);
+  				tmp_point[1] = -(*it) * cos(theta_rel);
   				full_point_list.push_back(tmp_point);
         }
 				theta_rel += laser_in.angle_increment;

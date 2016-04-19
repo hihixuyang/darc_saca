@@ -175,7 +175,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.75f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 1.1f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;
