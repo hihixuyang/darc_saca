@@ -33,9 +33,9 @@ protected:
   static constexpr float max_angle_ = 10.0 * M_PI / 180.0; // rad
   static constexpr float max_yaw_rate_ = 60.0 * M_PI / 180.0;  // rad/s
 
-  static constexpr float kpx_ = 150.0;
+  static constexpr float kpx_ = 100.0;
   static constexpr float kdx_ = 2.5;
-  static constexpr float kpy_ = 150.0;
+  static constexpr float kpy_ = 100.0;
   static constexpr float kdy_ = 2.5;
   static constexpr float kpz_ = 5.0;
 

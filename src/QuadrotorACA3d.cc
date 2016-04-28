@@ -66,10 +66,10 @@ bool QuadrotorACA3d::AvoidCollisions(const Input& desired_input,
 		ClearHalfplanes();
 	}
 
-  u_ = desired_u_ + delta_u_;
-//  u_[0] = desired_u_[0] + 1.1 * delta_u_[0];
-//  u_[1] = desired_u_[1] + 1.1 * delta_u_[1];
-//  u_[2] = desired_u_[2] + delta_u_[2];
+//  u_ = desired_u_ + delta_u_;
+  u_[0] = desired_u_[0] + 1.2 * delta_u_[0];
+  u_[1] = desired_u_[1] + 1.2 * delta_u_[1];
+  u_[2] = desired_u_[2];// + delta_u_[2];
 	return collision_flag;
 }  // AvoidCollision
 
@@ -175,7 +175,7 @@ void QuadrotorACA3d::CreateHalfplane(const Eigen::Vector3f& pos_colliding,
 																		 const Eigen::Vector3f& normal) {
 	Eigen::Vector3f a;
 	a.transpose() = normal.transpose()*J_.back();
-	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 1.1f) / a.norm();
+	float b = static_cast<float>((normal.transpose() * (pos_colliding - p_star_.back()))	+ 0.75f) / a.norm();
 	a.normalize();
 
 	Plane tmp_plane;

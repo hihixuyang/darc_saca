@@ -19,16 +19,16 @@ QuadrotorBase::State QuadrotorBase::RobotF(const QuadrotorBase::State& x,
   static const float Kp = 6.0;
 //  float t = (Kp * (max_climb_rate * u[2] - x[5]) + 9.812)/(cx*cy);
   t = Kp * (max_climb_rate * u[2] - x[5]);
-
+  t = 0.0; 
   Eigen::Vector3f g(0,0,9.812);
   Eigen::Vector3f vel = x.segment(3,3);
   Eigen::Vector3f r = x.segment(6,3);
   Eigen::Vector3f w = x.segment(9,3);
 
-  float k_drag = 0.5;
+  float k_drag = 0.2;
 	State x_dot;
 	x_dot.segment(0,3) = vel;
-	x_dot.segment(3,3) = T + t * Eigen::Vector3f::UnitZ() - g - k_drag * vel;
+	x_dot.segment(3,3) = (T / (cx*cy)) + t * Eigen::Vector3f::UnitZ() - g - k_drag * vel;
 	x_dot.segment(6,3) = w;
 	x_dot[9]  = kpx_*(max_angle_ * u[0] - r[0]) - kdx_*w[0];
 	x_dot[10] = kpy_*(max_angle_ * u[1] - r[1]) - kdy_*w[1];
@@ -73,7 +73,7 @@ void QuadrotorBase::Setup(void) {
   Q_.block<3,3>(0,0) = 0.5*0.5*Eigen::Matrix3f::Identity();  // px, py, pz
   Q_.block<2,2>(3,3) = 0.25*0.25*Eigen::Matrix2f::Identity();  // vx, vy
   Q_(5,5) = 0.4*0.4;  // vz
-  Q_.block<3,3>(6,6) = 0.3*0.3*Eigen::Matrix3f::Identity();  // rx, ry, rz
+  Q_.block<3,3>(6,6) = 0.35*0.35*Eigen::Matrix3f::Identity();  // rx, ry, rz
   Q_.block<3,3>(9,9) = 0.45*0.45*Eigen::Matrix3f::Identity();  // wx, wy, wz
 
   // Kalman observation noise
@@ -81,13 +81,13 @@ void QuadrotorBase::Setup(void) {
   R_.block<2,2>(0,0) = 0.1*0.1*Eigen::Matrix2f::Identity();  // rx, ry
   R_(2,2) = 0.3*0.3;  // rz
   R_.block<3,3>(3,3) = 0.2*0.2*Eigen::Matrix3f::Identity();  // wx, wy, wz
-  R_.block<2,2>(6,6) = 1.0*1.0*Eigen::Matrix2f::Identity();  // vx, vy
+  R_.block<2,2>(6,6) = 0.6*0.6*Eigen::Matrix2f::Identity();  // vx, vy
   R_(8,8) = 0.25*0.25;  // vz
 
   // Observation mapping
 	H_ = ZXmat::Zero();
   H_.block<6,6>(0,6) = Eigen::Matrix<float,6,6>::Identity(); // rx, ry, rz, wx, wy, wz
-  H_.block<3,3>(6,3) = Eigen::Matrix3f::Identity(); // vx, vy, vz
+  //H_.block<3,3>(6,3) = Eigen::Matrix3f::Identity(); // vx, vy, vz
 
   // Kalman initial covariances
   Pm_ = XXmat::Zero();
@@ -95,7 +95,7 @@ void QuadrotorBase::Setup(void) {
 
   // Robot/integration parameters
   dt_ = 0.02;
-  radius_ = 0.375;
+  radius_ = 0.375 * 1.1;
   voltage_ = 11.1;
 }  // Setup
 
