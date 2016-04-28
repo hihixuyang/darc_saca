@@ -31,15 +31,15 @@ int main(int argc, char* argv[]) {
 
   while (ros::ok()) {
     ros::spinOnce();
+
     if (new_laser) {
       range_list.clear();
       point_list.clear();
-
       theta_rel = M_PI / 4.0;// + laser_in.angle_min;
       Eigen::Vector2f tmp_point;
       for (std::vector<float>::iterator it = laser_in.ranges.begin();
            it != laser_in.ranges.end(); ++it) {
-        if ((*it) <= 6.0 && (*it) > radius) {
+        if ((*it) <= 6.0) {
           range_list.push_back(*it);
 					tmp_point[0] =  (*it)*cos(theta_rel);
           tmp_point[1] = -(*it)*sin(theta_rel);

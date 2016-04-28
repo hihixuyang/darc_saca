@@ -242,9 +242,9 @@ int main(int argc, char* argv[]) {
 	QuadrotorACA3d quad(time_horizon);
 	
 	QuadrotorACA3d::State x0 = QuadrotorACA3d::State::Zero();
-	x0[0] = 9.0;//1.0;  
-	x0[1] = 14.0;//-1.0;
-	x0[2] = 1.2;
+	x0[0] = -0.3;
+	x0[1] = -0.3;
+	x0[2] = -2.1;
 	quad.set_x(x0);
 	
 	std::vector<Vertex> v(9);
@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
 			Eigen::Vector2f tmp_point;
 			for (int data_index = 0; data_index < laser_in.ranges.size();
 					 ++data_index) {
-			  if (laser_in.ranges[data_index] <= 6.0)
+			  if (laser_in.ranges[data_index] <= 3.75)
 			  {
   				range_list.push_back(laser_in.ranges[data_index]);
 				  

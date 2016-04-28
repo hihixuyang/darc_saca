@@ -32,11 +32,11 @@ public:
 	
 protected:
   static constexpr float mass_ = 1.42;
-  static constexpr float max_angle_ = 15.0* M_PI / 180.0;
+  static constexpr float max_angle_ = 10.0* M_PI / 180.0;
   static constexpr float max_yaw_rate_ = 60.0 * M_PI / 180.0;
-  static constexpr float kpx_ = 145;
+  static constexpr float kpx_ = 70;
   static constexpr float kdx_ = 5;
-  static constexpr float kpy_ = 145;
+  static constexpr float kpy_ = 70;
   static constexpr float kdy_ = 5;
   static constexpr float kpz_ = 5;
 	State RobotF(const State& x0, const Input& u0);
